@@ -75,7 +75,12 @@ export default function CountrySearch({ selected, onSelect }: Props) {
 
       {open && results.length > 0 && (
         <ul className="cs-dropdown">
-          {!query && <li className="cs-dropdown-header">추천 국가</li>}
+          {!query && (
+            <li className="cs-dropdown-header">
+              KOICA 지원 실적 순 ({results.length}개국)
+            </li>
+          )}
+          {query && <li className="cs-dropdown-header">검색 결과</li>}
           {results.map((c) => (
             <li
               key={c.id}

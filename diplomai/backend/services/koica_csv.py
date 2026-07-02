@@ -164,6 +164,51 @@ def search_countries_in_csv(query: str, limit: int = 15) -> list[str]:
     return results
 
 
+def get_all_countries_ranked(limit: int = 30) -> list[str]:
+    """
+    KOICA CSV에 실적이 있는 모든 국가를 누적 지원액 내림차순으로 반환.
+    국제기구·기타 제외. 빈 검색 시 탐색 목록으로 사용.
+    """
+    csv_path = _find_koica_csv()
+    if csv_path is None:
+        return []
+
+    enc = _detect_encoding(csv_path)
+    exclude_prefixes = (
+        "AIT", "ANC", "APSDEP", "AfDF", "ALADI", "ADB", "APEC", "ASEAN",
+        "Asia Foundation", "AU", "CCOP", "CERF", "CPSC", "CP", "CSD",
+        "EAC", "EBRD", "FAO", "ILO", "IMO", "IOM", "IPPF", "ITC", "ITLOS",
+        "IVI", "MEDRC", "Millennium", "MOPAN", "MRC", "UN", "WFP", "WHO",
+        "WMO", "World Bank", "WTO", "OECD", "UNDP", "UNICEF", "UNHCR",
+        "UNESCO", "UNEP", "UNIDO", "UNFPA", "IVF", "GGGI", "GPE", "IAEA",
+        "ICC", "ICRC", "IDC", "IFAD", "IFRC", "IVF", "OAS", "OAU",
+        "PAHO", "PIF", "SIDS", "SOPAC", "SPC", "국제기구", "기타", "일반",
+        "다국지원", "다자기구", "유엔", "남미다국", "동남아대테러", "마드리드",
+        "유엔지뢰", "사하라이남아프리카",
+    )
+
+    totals: dict[str, int] = {}
+    try:
+        with open(csv_path, encoding=enc, newline="") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                name = (row.get("국가명") or "").strip()
+                if not name:
+                    continue
+                if any(name.startswith(p) for p in exclude_prefixes):
+                    continue
+                try:
+                    usd = int((row.get("달러") or "0").replace(",", ""))
+                except ValueError:
+                    usd = 0
+                totals[name] = totals.get(name, 0) + usd
+    except Exception:
+        pass
+
+    ranked = sorted(totals.items(), key=lambda x: x[1], reverse=True)
+    return [name for name, _ in ranked[:limit]]
+
+
 def get_csv_metadata() -> dict:
     csv_path = _find_koica_csv()
     if csv_path is None:

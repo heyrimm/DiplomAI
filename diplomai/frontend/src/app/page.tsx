@@ -25,7 +25,7 @@ import ReportTab from "@/components/tabs/ReportTab";
 import AiRecommendationCards from "@/components/AiRecommendationCards";
 
 export default function Home() {
-  const [selectedId, setSelectedId]   = useState("인도네시아");
+  const [selectedId, setSelectedId]   = useState<string | null>(null);
   const [country, setCountry]         = useState<Country | null>(null);
   const [budget, setBudget]           = useState<OdaBudgetResponse | null>(null);
   const [gaps, setGaps]               = useState<OdaGapsResponse | null>(null);
@@ -39,7 +39,8 @@ export default function Home() {
   const [error, setError]             = useState<string | null>(null);
   const [loading, setLoading]         = useState(false);
 
-  const loadCountryData = useCallback(async (id: string) => {
+  const loadCountryData = useCallback(async (id: string | null) => {
+    if (!id) return;
     // 즉시 초기화 → 이전 국가 데이터가 새 국가 UI에 남지 않음
     setCountry(null);
     setBudget(null);
@@ -76,11 +77,11 @@ export default function Home() {
     }
   }, []);
 
-  useEffect(() => { loadCountryData(selectedId); }, [selectedId, loadCountryData]);
+  useEffect(() => { if (selectedId) loadCountryData(selectedId); }, [selectedId, loadCountryData]);
 
   const handleCountrySelect = (id: string) => {
     setSelectedId(id);
-    setActiveTab("overview"); // 나라 바꾸면 개요로 이동
+    setActiveTab("overview");
   };
 
   const handleGenerateRecommendations = async () => {
@@ -134,6 +135,19 @@ export default function Home() {
             <div className="error-banner">
               <span>⚠</span>
               <span>{error}</span>
+            </div>
+          )}
+
+          {/* 국가 미선택 웰컴 화면 */}
+          {!selectedId && !loading && (
+            <div className="welcome-state">
+              <div className="welcome-icon">🌏</div>
+              <h2 className="welcome-title">분석할 국가를 검색하세요</h2>
+              <p className="welcome-desc">
+                KOICA 지원 실적이 있는 <strong>150개+ 국가</strong>를 검색할 수 있습니다.<br />
+                상단 검색창에 나라 이름을 입력하거나 추천 목록에서 선택하세요.
+              </p>
+              <p className="welcome-hint">예: 인도네시아 · 베트남 · 케냐 · 볼리비아</p>
             </div>
           )}
 

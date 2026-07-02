@@ -1363,6 +1363,22 @@ input:focus, select:focus, textarea:focus {
   font-size: 14px;
 }
 
+/* ── 웰컴 화면 ── */
+.welcome-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 100px 24px 80px;
+  text-align: center;
+  gap: 12px;
+}
+.welcome-icon  { font-size: 48px; line-height: 1; margin-bottom: 8px; }
+.welcome-title { font-size: 22px; font-weight: 700; color: var(--ink); margin: 0; }
+.welcome-desc  { font-size: 14.5px; color: var(--muted); line-height: 1.7; margin: 0; max-width: 380px; }
+.welcome-desc strong { color: var(--ink-soft); font-weight: 600; }
+.welcome-hint  { font-size: 13px; color: var(--faint); margin: 4px 0 0; }
+
 /* ============================================================
    Responsive
    ============================================================ */

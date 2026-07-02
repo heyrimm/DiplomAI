@@ -13,7 +13,7 @@ const NAV_ITEMS: { id: TabId; icon: string; label: string }[] = [
 
 interface Props {
   countries: Country[];
-  selectedId: string;
+  selectedId: string | null;
   activeNav: string;
   onCountryChange: (id: string) => void;
   onNavChange: (id: string) => void;

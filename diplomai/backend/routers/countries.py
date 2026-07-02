@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Query
 from data.country_meta import COUNTRY_META, search_meta
-from services.koica_csv import search_countries_in_csv
+from services.koica_csv import search_countries_in_csv, get_all_countries_ranked
 from services.koica_indicators import get_country_indicators
 
 router = APIRouter(prefix="/api/countries", tags=["countries"])
@@ -62,7 +62,17 @@ def list_countries():
 @router.get("/search")
 def search_countries(q: str = Query("", description="국가명 검색어 (한국어)")):
     if not q.strip():
-        return [c for c in (_build_country(k) for k in FEATURED_IDS) if c]
+        # 빈 검색: KOICA 누적 지원액 순 상위 30개국
+        ranked = get_all_countries_ranked(limit=30)
+        results = []
+        seen: set[str] = set()
+        for ko in ranked:
+            if ko in seen:
+                continue
+            seen.add(ko)
+            c = _build_country(ko) or _build_country_csv_only(ko)
+            results.append(c)
+        return results[:30]
 
     meta_results = search_meta(q, limit=15)
     meta_names   = {r["name"] for r in meta_results}
