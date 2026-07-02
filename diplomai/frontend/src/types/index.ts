@@ -7,12 +7,17 @@ export interface Country {
   population: number;
   gdp_per_capita: number;
   hdi: number;
+  // 협력국 통합 개발 지표 실데이터
+  internet_usage?: number | null;
+  corruption_score?: number | null;
+  gii?: number | null;
 }
 
 export interface SectorBudget {
   sector: string;
   budget: number;
   projects: number;
+  sdg_goals?: string[];
 }
 
 export interface OdaBudgetResponse {

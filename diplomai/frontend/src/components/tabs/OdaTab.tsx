@@ -167,13 +167,28 @@ export default function OdaTab({ countryId, budget, gaps, peer }: Props) {
             <div className="card-head">
               <div>
                 <p className="card-title">분야별 예산 분배</p>
-                <p className="card-meta">단위: 억원 · {budget?.year ?? 2023}년</p>
+                <p className="card-meta">단위: 억원 · {budget?.year ?? 2023}년 · KOICA 협력국 통합 개발 지표</p>
               </div>
               {total > 0 && (
                 <span className="badge badge-blue">총 {Math.round(total).toLocaleString()}억</span>
               )}
             </div>
-            <HorizontalBarChart items={budgetItems} source="KOICA 공개데이터" />
+            <HorizontalBarChart items={budgetItems} source="KOICA 협력국 통합 개발 지표 (data.go.kr)" />
+            {/* SDG 태그 — 섹터별 */}
+            {(budget?.sectors ?? []).some(s => s.sdg_goals?.length) && (
+              <div style={{ marginTop: 14 }}>
+                <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 8 }}>SDG 연계 목표</p>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 8px" }}>
+                  {Array.from(
+                    new Set((budget?.sectors ?? []).flatMap(s => s.sdg_goals ?? []))
+                  ).sort().map(sdg => (
+                    <span key={sdg} className="badge badge-neutral" style={{ fontSize: 11.5 }}>
+                      {sdg}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

@@ -165,13 +165,23 @@ export default function OverviewTab({
             ) : (
               <>
                 <p className="card-title" style={{ marginBottom: 14 }}>국가 기본 정보</p>
+                <p className="card-meta" style={{ marginBottom: 12 }}>출처: KOICA 협력국 통합 개발 지표</p>
                 <div className="stack">
-                  {[
-                    ["인구",       `${(country.population / 1_000_000).toFixed(1)}M명`],
-                    ["1인당 GDP",  `$${country.gdp_per_capita.toLocaleString()}`],
-                    ["소득 수준",  country.income_level],
-                    ["지역",       country.region],
-                  ].map(([k, v]) => (
+                  {([
+                    ["인구",          `${(country.population / 1_000_000).toFixed(1)}M명`],
+                    ["1인당 GDP",     `$${country.gdp_per_capita.toLocaleString()}`],
+                    ["소득 수준",     country.income_level],
+                    ["지역",          country.region],
+                    country.internet_usage != null
+                      ? ["인터넷 사용률", `${country.internet_usage.toFixed(1)}%`]
+                      : null,
+                    country.corruption_score != null
+                      ? ["부패인식지수", `${country.corruption_score}/100`]
+                      : null,
+                    country.gii != null
+                      ? ["젠더불평등지수", country.gii.toFixed(3)]
+                      : null,
+                  ] as ([string, string] | null)[]).filter(Boolean).map(([k, v]) => (
                     <div key={k} style={{ display: "flex", justifyContent: "space-between", fontSize: 13.5 }}>
                       <span style={{ color: "var(--muted)" }}>{k}</span>
                       <span style={{ color: "var(--ink)", fontWeight: 500 }}>{v}</span>
