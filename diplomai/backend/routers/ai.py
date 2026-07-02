@@ -1,5 +1,6 @@
 import json
 import os
+import time
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 import anthropic
@@ -8,6 +9,10 @@ from data.country_meta import COUNTRY_META
 from services.koica_csv import get_country_latest, get_country_history
 
 router = APIRouter(prefix="/api/ai", tags=["ai"])
+
+# 메모리 캐시: 같은 국가 재호출 방지 (TTL 1시간)
+_CACHE: dict[str, dict] = {}
+_CACHE_TTL = 3600
 
 
 class RecommendationRequest(BaseModel):
@@ -61,13 +66,17 @@ async def get_recommendations(req: RecommendationRequest):
     if meta is None:
         raise HTTPException(status_code=404, detail=f"Country not found: {country_id}")
 
+    # 캐시 확인 — 같은 국가는 1시간 내 재호출 없음
+    cached = _CACHE.get(country_id)
+    if cached and (time.time() - cached["ts"]) < _CACHE_TTL:
+        return {**cached["data"], "cached": True}
+
     api_key = os.getenv("ANTHROPIC_API_KEY")
     if not api_key or api_key.startswith("your_"):
         raise HTTPException(status_code=503, detail="ANTHROPIC_API_KEY가 설정되지 않았습니다.")
 
     latest = get_country_latest(country_id)
     history = get_country_history(country_id)
-
     prompt = _build_prompt(country_id, meta, latest, history)
 
     try:
@@ -78,25 +87,22 @@ async def get_recommendations(req: RecommendationRequest):
             messages=[{"role": "user", "content": prompt}],
         )
         raw = message.content[0].text.strip()
-
-        # JSON 파싱
-        # 코드블록 감싸인 경우 제거
         if raw.startswith("```"):
             raw = raw.split("```")[1]
             if raw.startswith("json"):
                 raw = raw[4:]
-
         recommendations = json.loads(raw)
         if not isinstance(recommendations, list):
             recommendations = []
-
     except json.JSONDecodeError:
         raise HTTPException(status_code=502, detail="AI 응답 파싱 실패")
     except anthropic.APIError as e:
         raise HTTPException(status_code=502, detail=f"Claude API 오류: {e}")
 
-    return {
+    result = {
         "country_id": country_id,
         "country_name": country_id,
         "recommendations": recommendations,
     }
+    _CACHE[country_id] = {"data": result, "ts": time.time()}
+    return result
