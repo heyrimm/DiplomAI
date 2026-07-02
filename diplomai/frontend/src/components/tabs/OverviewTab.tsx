@@ -1,10 +1,25 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import type {
   Country, OdaBudgetResponse, OdaGapsResponse,
   Recommendation, TravelAlarm, SafetyNoticesResponse,
 } from "@/types";
 import HorizontalBarChart from "@/components/HorizontalBarChart";
+
+interface AlarmLevel {
+  level: string;
+  label: string;
+  color: string;
+  count: number;
+  countries: { country_eng: string; country_iso: string }[];
+}
+
+interface AlarmOverview {
+  levels: AlarmLevel[];
+  total_countries: number;
+  source: string;
+}
 
 interface Props {
   country: Country;
@@ -20,17 +35,26 @@ const ALARM_CLS: Record<string, string> = {
   red: "alarm-red", gray: "alarm-gray", green: "alarm-gray",
 };
 
-const RISK_FACTORS = [
-  { label: "정치 안정성", level: "중간",  cls: "badge-amber" },
-  { label: "자연재해",    level: "중간",  cls: "badge-amber" },
-  { label: "감염병",      level: "낮음",  cls: "badge-green" },
-  { label: "항공 접근성", level: "안정",  cls: "badge-blue" },
-  { label: "사이버 보안", level: "주의",  cls: "badge-amber" },
-];
+const LEVEL_STYLE: Record<string, { bg: string; text: string; border: string }> = {
+  "4": { bg: "rgba(185,28,28,.08)",  text: "#b91c1c", border: "rgba(185,28,28,.25)" },
+  "3": { bg: "rgba(180,83,9,.08)",   text: "#b45309", border: "rgba(180,83,9,.25)"  },
+  "2": { bg: "rgba(161,98,7,.07)",   text: "#a16207", border: "rgba(161,98,7,.22)"  },
+  "1": { bg: "rgba(29,78,216,.07)",  text: "#1d4ed8", border: "rgba(29,78,216,.2)"  },
+};
 
 export default function OverviewTab({
   country, budget, gaps, recommendations, alarm, safetyNotices,
 }: Props) {
+  const [alarmOverview, setAlarmOverview] = useState<AlarmOverview | null>(null);
+  const [showAllLevel, setShowAllLevel] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/safety/overview")
+      .then((r) => r.json())
+      .then(setAlarmOverview)
+      .catch(() => {});
+  }, []);
+
   const totalBudget = budget?.total_억원 ?? budget?.sectors.reduce((s, i) => s + i.budget, 0) ?? 0;
   const yoyPct      = budget?.yoy_pct;
   const riskScore   = Math.round((1 - country.hdi) * 100);
@@ -45,17 +69,12 @@ export default function OverviewTab({
       <div className="grid-3">
         <div className="kpi-card">
           <span className="kpi-label">리스크 스코어</span>
-          <span className="kpi-value">
-            {riskScore}<span className="kpi-unit">/100</span>
-          </span>
+          <span className="kpi-value">{riskScore}<span className="kpi-unit">/100</span></span>
           <span className="kpi-trend neutral">HDI 기반 산출</span>
         </div>
         <div className="kpi-card">
-          <span className="kpi-label">KOICA 연간 예산</span>
-          <span className="kpi-value">
-            {Math.round(totalBudget).toLocaleString()}
-            <span className="kpi-unit">억원</span>
-          </span>
+          <span className="kpi-label">KOICA 연간 지원</span>
+          <span className="kpi-value">{Math.round(totalBudget).toLocaleString()}<span className="kpi-unit">억원</span></span>
           {yoyPct != null && (
             <span className={`kpi-trend ${yoyPct >= 0 ? "up" : "down"}`}>
               {yoyPct >= 0 ? "↑" : "↓"} 전년 대비 {yoyPct > 0 ? "+" : ""}{yoyPct}%
@@ -69,7 +88,7 @@ export default function OverviewTab({
         </div>
       </div>
 
-      {/* Travel alarm */}
+      {/* Travel alarm — 해당 국가 */}
       {alarm && alarm.level !== "0" && (
         <div className={`alarm-badge ${ALARM_CLS[alarm.level_color] ?? "alarm-gray"}`}
           style={{ padding: "11px 16px", borderRadius: "var(--r-lg)", fontSize: 13.5 }}>
@@ -106,7 +125,7 @@ export default function OverviewTab({
         </div>
       )}
 
-      {/* 2-col: budget chart + safety */}
+      {/* 2-col: budget chart + safety notices */}
       <div className="grid-2">
         <div className="card">
           <div className="card-body">
@@ -137,9 +156,7 @@ export default function OverviewTab({
                       paddingBottom: i < safetyNotices.notices.length - 1 ? 10 : 0,
                       borderBottom: i < safetyNotices.notices.length - 1 ? "1px solid var(--line)" : "none",
                     }}>
-                      <p style={{ fontSize: 13, fontWeight: 500, color: "var(--ink)", lineHeight: 1.4 }}>
-                        {n.title}
-                      </p>
+                      <p style={{ fontSize: 13, fontWeight: 500, color: "var(--ink)", lineHeight: 1.4 }}>{n.title}</p>
                       <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 3 }}>{n.date}</p>
                     </div>
                   ))}
@@ -147,16 +164,17 @@ export default function OverviewTab({
               </>
             ) : (
               <>
-                <p className="card-title" style={{ marginBottom: 14 }}>리스크 요인</p>
+                <p className="card-title" style={{ marginBottom: 14 }}>국가 기본 정보</p>
                 <div className="stack">
-                  {RISK_FACTORS.map((r) => (
-                    <div key={r.label} style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                    }}>
-                      <span style={{ fontSize: 13.5, color: "var(--ink-soft)" }}>{r.label}</span>
-                      <span className={`badge ${r.cls}`}>{r.level}</span>
+                  {[
+                    ["인구",       `${(country.population / 1_000_000).toFixed(1)}M명`],
+                    ["1인당 GDP",  `$${country.gdp_per_capita.toLocaleString()}`],
+                    ["소득 수준",  country.income_level],
+                    ["지역",       country.region],
+                  ].map(([k, v]) => (
+                    <div key={k} style={{ display: "flex", justifyContent: "space-between", fontSize: 13.5 }}>
+                      <span style={{ color: "var(--muted)" }}>{k}</span>
+                      <span style={{ color: "var(--ink)", fontWeight: 500 }}>{v}</span>
                     </div>
                   ))}
                 </div>
@@ -179,6 +197,78 @@ export default function OverviewTab({
               <span className="badge badge-blue">{recommendations[0].sector}</span>
               <span className="badge badge-neutral">{recommendations[0].budget_estimate}</span>
               <span className="badge badge-neutral">{recommendations[0].duration}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── 전 세계 외교부 여행경보 현황 ── */}
+      {alarmOverview && (
+        <div className="card">
+          <div className="card-body">
+            <div className="card-head" style={{ marginBottom: 16 }}>
+              <div>
+                <p className="card-title">전 세계 외교부 여행경보 현황</p>
+                <p className="card-meta">경보 발령 국가 총 {alarmOverview.total_countries}개국 · {alarmOverview.source}</p>
+              </div>
+            </div>
+
+            <div className="grid-2" style={{ gap: 10 }}>
+              {alarmOverview.levels.map((lv) => {
+                const st = LEVEL_STYLE[lv.level] ?? LEVEL_STYLE["1"];
+                const isExpanded = showAllLevel === lv.level;
+                const visible = isExpanded ? lv.countries : lv.countries.slice(0, 8);
+
+                return (
+                  <div key={lv.level} style={{
+                    padding: "14px 16px",
+                    border: `1px solid ${st.border}`,
+                    borderRadius: "var(--r-lg)",
+                    background: st.bg,
+                  }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                      <span style={{ fontWeight: 700, fontSize: 13.5, color: st.text }}>
+                        {lv.label}
+                      </span>
+                      <span style={{
+                        fontWeight: 700, fontSize: 20, color: st.text,
+                        fontVariantNumeric: "tabular-nums",
+                      }}>
+                        {lv.count}
+                        <span style={{ fontSize: 11, fontWeight: 400, marginLeft: 2 }}>개국</span>
+                      </span>
+                    </div>
+
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 6px" }}>
+                      {visible.map((c) => (
+                        <span key={c.country_iso} style={{
+                          fontSize: 11.5,
+                          color: st.text,
+                          opacity: .85,
+                          background: "rgba(0,0,0,.04)",
+                          padding: "1px 6px",
+                          borderRadius: 4,
+                          whiteSpace: "nowrap",
+                        }}>
+                          {c.country_eng}
+                        </span>
+                      ))}
+                      {lv.countries.length > 8 && (
+                        <button
+                          onClick={() => setShowAllLevel(isExpanded ? null : lv.level)}
+                          style={{
+                            fontSize: 11.5, color: st.text, opacity: .7,
+                            background: "none", border: "none", cursor: "pointer",
+                            padding: "1px 4px", textDecoration: "underline",
+                          }}
+                        >
+                          {isExpanded ? "접기" : `+${lv.countries.length - 8}개 더보기`}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>

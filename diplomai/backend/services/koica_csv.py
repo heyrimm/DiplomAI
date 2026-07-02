@@ -76,14 +76,14 @@ def _load_country_rows(country_id: str) -> list[dict]:
     return sorted(rows, key=lambda r: int(r.get("연도") or 0))
 
 
-def get_country_history(country_id: str) -> list[dict]:
-    """연도별 KOICA 지원 실적 반환 (2010년 이후)."""
+def get_country_history(country_id: str, since: int = 1991) -> list[dict]:
+    """연도별 KOICA 지원 실적 반환 (기본: 전체)."""
     rows = _load_country_rows(country_id)
     result = []
     for row in rows:
         try:
             year = int(row.get("연도") or 0)
-            if year < 2010:
+            if year < since:
                 continue
             won = int((row.get("원") or "0").replace(",", ""))
             usd = int((row.get("달러") or "0").replace(",", ""))

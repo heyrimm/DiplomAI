@@ -4,7 +4,7 @@
 """
 
 from fastapi import APIRouter, HTTPException
-from services.mofa_api import fetch_travel_alarm, fetch_safety_notices
+from services.mofa_api import fetch_travel_alarm, fetch_safety_notices, _fetch_all_alarms
 from data.country_meta import COUNTRY_META
 
 router = APIRouter(prefix="/api/safety", tags=["safety"])
@@ -15,6 +15,42 @@ _MOCK_ALARM = {
     "캄보디아":   {"level": "2", "level_label": "여행자제", "level_color": "yellow", "remark": ""},
     "에티오피아": {"level": "2", "level_label": "여행자제", "level_color": "yellow", "remark": ""},
 }
+
+
+@router.get("/overview")
+async def get_alarm_overview():
+    """외교부 여행경보 전체 현황 — 단계별 국가 목록."""
+    items = await _fetch_all_alarms()
+
+    grouped: dict[str, list] = {"4": [], "3": [], "2": [], "1": []}
+    for item in items:
+        level = str(item.get("alarm_lvl") or "")
+        if level not in grouped:
+            continue
+        grouped[level].append({
+            "country_eng": item.get("country_eng_nm", ""),
+            "country_iso": item.get("country_iso_alp2", ""),
+        })
+
+    label_map = {"4": "여행금지", "3": "출국권고", "2": "여행자제", "1": "여행유의"}
+    color_map = {"4": "red", "3": "orange", "2": "yellow", "1": "blue"}
+
+    levels = [
+        {
+            "level": lv,
+            "label": label_map[lv],
+            "color": color_map[lv],
+            "count": len(grouped[lv]),
+            "countries": sorted(grouped[lv], key=lambda x: x["country_eng"]),
+        }
+        for lv in ["4", "3", "2", "1"]
+    ]
+
+    return {
+        "levels": levels,
+        "total_countries": sum(len(v) for v in grouped.values()),
+        "source": "외교부 여행경보 (data.go.kr)",
+    }
 
 
 @router.get("/{country_id:path}/alarm")

@@ -224,7 +224,7 @@ export default function Home() {
                     <h2 className="tab-page-title">ODA 예산 분석 — {country.name}</h2>
                     <span className="tab-page-sub">KOICA 국가별 지원실적 · {budget?.year ?? 2023}년</span>
                   </div>
-                  <OdaTab budget={budget} gaps={gaps} peer={peer} />
+                  <OdaTab countryId={selectedId} budget={budget} gaps={gaps} peer={peer} />
                   <AiRecommendationCards
                     recommendations={recommendations}
                     loading={loadingRec}
