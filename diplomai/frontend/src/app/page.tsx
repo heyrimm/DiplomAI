@@ -276,7 +276,7 @@ export default function Home() {
                 <h2 className="tab-page-title">ODA 시뮬레이션{country ? ` — ${country.name}` : ""}</h2>
                 <span className="tab-page-sub">예산 배분 시나리오 분석</span>
               </div>
-              <SimulationTab />
+              <SimulationTab countryId={selectedId} />
             </div>
           )}
 

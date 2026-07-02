@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from routers import countries, oda, ai, diplomacy, safety
+from routers import countries, oda, ai, diplomacy, safety, simulation
 
 app = FastAPI(
     title="DiplomAI API",
@@ -25,6 +25,7 @@ app.include_router(oda.router)
 app.include_router(ai.router)
 app.include_router(diplomacy.router)
 app.include_router(safety.router)
+app.include_router(simulation.router)
 
 
 @app.get("/")
