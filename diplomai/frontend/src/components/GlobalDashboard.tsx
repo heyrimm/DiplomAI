@@ -96,12 +96,14 @@ export default function GlobalDashboard() {
 
       {/* ── Hero 밴드 ── */}
       <div style={{
-        background: "var(--primary)",
+        background: "var(--surface)",
+        border: "1px solid var(--line)",
         borderRadius: "var(--r-xl)",
         padding: "32px 36px",
         display: "grid",
         gridTemplateColumns: "1fr 1px 1fr 1px 1fr",
         gap: 0,
+        boxShadow: "var(--shadow-sm)",
       }}>
         {[
           {
@@ -125,17 +127,17 @@ export default function GlobalDashboard() {
         ].map((stat, i) => (
           <>
             {i > 0 && (
-              <div key={`div-${i}`} style={{ background: "rgba(255,255,255,.1)", alignSelf: "stretch" }} />
+              <div key={`div-${i}`} style={{ background: "var(--line)", alignSelf: "stretch" }} />
             )}
             <div key={stat.label} style={{ padding: "0 28px", textAlign: i === 1 ? "center" : i === 2 ? "right" : "left" }}>
-              <p style={{ fontSize: 10.5, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(255,255,255,.4)", marginBottom: 10 }}>
+              <p style={{ fontSize: 10.5, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--faint)", marginBottom: 10 }}>
                 {stat.label}
               </p>
-              <p style={{ fontSize: 38, fontWeight: 800, color: "#fff", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
+              <p style={{ fontSize: 38, fontWeight: 800, color: "var(--ink)", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
                 {stat.value ?? "—"}
-                <span style={{ fontSize: 14, fontWeight: 400, color: "rgba(255,255,255,.5)", marginLeft: 5 }}>{stat.unit}</span>
+                <span style={{ fontSize: 14, fontWeight: 400, color: "var(--muted)", marginLeft: 5 }}>{stat.unit}</span>
               </p>
-              <p style={{ fontSize: 11.5, color: "rgba(255,255,255,.35)", marginTop: 8 }}>{stat.sub}</p>
+              <p style={{ fontSize: 11.5, color: "var(--faint)", marginTop: 8 }}>{stat.sub}</p>
             </div>
           </>
         ))}
