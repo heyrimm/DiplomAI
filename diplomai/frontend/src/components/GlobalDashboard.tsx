@@ -30,8 +30,14 @@ export default function GlobalDashboard() {
   const [showAllLevel, setShowAll]  = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/global/summary").then(r => r.json()).then(setSummary).catch(() => {});
-    fetch("/api/safety/overview").then(r => r.json()).then(setAlarm).catch(() => {});
+    fetch("/api/global/summary")
+      .then(r => r.json())
+      .then(d => { if (d?.kpis) setSummary(d); })
+      .catch(() => {});
+    fetch("/api/safety/overview")
+      .then(r => r.json())
+      .then(d => { if (d?.levels) setAlarm(d); })
+      .catch(() => {});
   }, []);
 
   const alarmTotal = alarm?.levels.reduce((s, l) => s + l.count, 0) ?? 0;
