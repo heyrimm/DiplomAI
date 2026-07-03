@@ -65,6 +65,26 @@ COUNTRY_ENG_MAP: dict[str, str] = {
     "온두라스":     "Honduras",
     "니카라과":     "Nicaragua",
     "파라과이":     "Paraguay",
+    "엘살바도르":   "El Salvador",
+    "아이티":       "Haiti",
+    # 추가: COUNTRY_META 등록 국가
+    "부탄":         "Bhutan",
+    "투르크메니스탄": "Turkmenistan",
+    "말라위":       "Malawi",
+    "카메룬":       "Cameroon",
+    "코트디부아르": "Cote d'Ivoire",
+    "기니":         "Guinea",
+    "앙골라":       "Angola",
+    "알제리":       "Algeria",
+    "레바논":       "Lebanon",
+    "파푸아뉴기니": "Papua New Guinea",
+    # 신규 top-60 KOICA 국가
+    "콩고 민주공화국": "Democratic Republic of the Congo",
+    "중국":         "China",
+    "도미니카공화국": "Dominican Republic",
+    "피지":         "Fiji",
+    "솔로몬군도":   "Solomon Islands",
+    "코스타리카":   "Costa Rica",
 }
 
 ALARM_LEVEL_LABEL = {
@@ -205,3 +225,63 @@ async def fetch_safety_notices(country_id: str, limit: int = 3) -> list[dict] | 
         return notices if notices else []
     except Exception:
         return None
+
+
+_HISTORY_CACHE: dict[str, list] = {}
+
+
+async def _fetch_all_history() -> list[dict]:
+    """전체 여행경보 조정 이력 캐시 조회 (494건)."""
+    if _HISTORY_CACHE.get("items"):
+        return _HISTORY_CACHE["items"]
+
+    api_key = _get_key()
+    if not api_key:
+        return []
+
+    url = "https://apis.data.go.kr/1262000/CountryHistoryService2/getCountryHistoryList2"
+    try:
+        async with httpx.AsyncClient(timeout=httpx.Timeout(15.0)) as client:
+            resp = await client.get(url, params={
+                "serviceKey": api_key,
+                "numOfRows": "500",
+                "pageNo": "1",
+                "type": "json",
+            })
+            resp.raise_for_status()
+            data = resp.json()
+        items = (
+            data.get("response", {}).get("body", {})
+                .get("items", {}).get("item", [])
+        )
+        if isinstance(items, dict):
+            items = [items]
+        _HISTORY_CACHE["items"] = items
+        return items
+    except Exception:
+        return []
+
+
+async def fetch_alarm_history(country_id: str, limit: int = 5) -> list[dict] | None:
+    """국가별 여행경보 조정 이력 최신 N건."""
+    eng_name = COUNTRY_ENG_MAP.get(country_id)
+    if not eng_name:
+        return None
+
+    items = await _fetch_all_history()
+
+    history = []
+    for item in items:
+        item_eng = (item.get("country_eng_nm") or "").strip()
+        if item_eng.lower() != eng_name.lower():
+            continue
+        history.append({
+            "title":    item.get("title") or "",
+            "date":     item.get("wrt_dt") or "",
+            "summary":  (item.get("txt_origin_cn") or "")[:200],
+            "file_url": item.get("file_download_url") or "",
+        })
+        if len(history) >= limit:
+            break
+
+    return history if history else []

@@ -7,6 +7,7 @@ import type {
   DiplomacyResponse,
   TravelAlarm,
   SafetyNoticesResponse,
+  AlarmHistoryResponse,
 } from "@/types";
 
 const BASE = "/api";
@@ -53,4 +54,7 @@ export const api = {
 
   getSafetyNotices: (countryId: string) =>
     fetcher<SafetyNoticesResponse>(`/safety/${encodeURIComponent(countryId)}/notices`),
+
+  getAlarmHistory: (countryId: string) =>
+    fetcher<AlarmHistoryResponse>(`/safety/${encodeURIComponent(countryId)}/alarm-history`),
 };

@@ -4,7 +4,7 @@
 """
 
 from fastapi import APIRouter, HTTPException
-from services.mofa_api import fetch_travel_alarm, fetch_safety_notices, _fetch_all_alarms
+from services.mofa_api import fetch_travel_alarm, fetch_safety_notices, fetch_alarm_history, _fetch_all_alarms
 from data.country_meta import COUNTRY_META
 
 router = APIRouter(prefix="/api/safety", tags=["safety"])
@@ -84,4 +84,18 @@ async def get_safety_notices(country_id: str):
         "country_id": country_id,
         "notices": [],
         "source": "mock (API 키 미설정 또는 연결 실패)",
+    }
+
+
+@router.get("/{country_id:path}/alarm-history")
+async def get_alarm_history(country_id: str):
+    """여행경보 조정 이력 (CountryHistoryService2)."""
+    if COUNTRY_META.get(country_id) is None:
+        raise HTTPException(status_code=404, detail=f"Country not found: {country_id}")
+
+    result = await fetch_alarm_history(country_id)
+    return {
+        "country_id": country_id,
+        "history": result or [],
+        "source": "외교부 여행경보 조정 이력 (data.go.kr)",
     }

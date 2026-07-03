@@ -78,6 +78,15 @@ COUNTRY_META: dict[str, dict] = {
     "아이티":     {"id": "아이티",     "name_en": "Haiti",        "region": "중남미",           "income_level": "최빈개도국",   "population": 11447569,  "gdp_per_capita": 1668,  "hdi": 0.535},
     # ── 태평양 ──
     "파푸아뉴기니":{"id":"파푸아뉴기니","name_en":"Papua New Guinea","region":"태평양",          "income_level": "최빈개도국",   "population": 9908523,   "gdp_per_capita": 2749,  "hdi": 0.558},
+    "피지":        {"id": "피지",       "name_en": "Fiji",           "region": "태평양",          "income_level": "중상위소득국", "population": 930000,    "gdp_per_capita": 5460,  "hdi": 0.730},
+    "솔로몬군도":  {"id": "솔로몬군도", "name_en": "Solomon Islands","region": "태평양",          "income_level": "최빈개도국",   "population": 724000,    "gdp_per_capita": 2262,  "hdi": 0.567},
+    # ── 아프리카 (추가) ──
+    "콩고 민주공화국":{"id":"콩고 민주공화국","name_en":"Democratic Republic of the Congo","region":"사하라이남 아프리카","income_level":"최빈개도국","population":99010212,"gdp_per_capita":557,"hdi":0.479},
+    # ── 동아시아 (추가) ──
+    "중국":        {"id": "중국",       "name_en": "China",          "region": "동아시아",         "income_level": "중상위소득국", "population": 1412175000,"gdp_per_capita": 12556, "hdi": 0.788},
+    # ── 중남미 (추가) ──
+    "도미니카공화국":{"id":"도미니카공화국","name_en":"Dominican Republic","region":"중남미",      "income_level": "중상위소득국", "population": 11117873,  "gdp_per_capita": 9785,  "hdi": 0.767},
+    "코스타리카":  {"id": "코스타리카", "name_en": "Costa Rica",     "region": "중남미",           "income_level": "중상위소득국", "population": 5153957,   "gdp_per_capita": 12614, "hdi": 0.806},
 }
 
 

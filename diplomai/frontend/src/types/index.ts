@@ -115,16 +115,38 @@ export interface SafetyNoticesResponse {
   source: string;
 }
 
+export interface AlarmHistoryItem {
+  title: string;
+  date: string;
+  summary: string;
+  file_url: string;
+}
+
+export interface AlarmHistoryResponse {
+  country_id: string;
+  history: AlarmHistoryItem[];
+  source: string;
+}
+
+export interface SejongYearCount {
+  year: string;
+  count: number;
+}
+
 export interface DiplomacyResponse {
   country_id: string;
-  kf_index: number;
-  korean_learners: number;
-  tourists: number;
-  learners_yoy: number;
-  tourists_yoy: number;
+  kf_index: number | null;
+  korean_learners: number | null;
+  learners_yoy: number | null;
+  diaspora_count: number | null;
+  embassy_count: number | null;
+  sejong_history: SejongYearCount[] | null;
+  tourists: number | null;
+  tourists_yoy: number | null;
   rank_in_region: string;
   channels: DiplomacyChannel[];
   trends: DiplomacyTrend[];
   timeline: DiplomacyTimeline[];
   ai_insight: string;
+  data_sources?: string[];
 }

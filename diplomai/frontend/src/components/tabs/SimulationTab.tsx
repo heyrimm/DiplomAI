@@ -112,7 +112,7 @@ export default function SimulationTab({ countryId }: Props) {
     // SDG 기여 점수: 영향 SDG 수 × 5점, 최대 50점
     const deltaSdgScore = affectedSdg.size * 5 * (deltaHdi >= 0 ? 1 : -1);
 
-    return { deltaHdi, deltaBeneficiaries, deltaSdgScore, affectedSdg: [...affectedSdg].sort() };
+    return { deltaHdi, deltaBeneficiaries, deltaSdgScore, affectedSdg: Array.from(affectedSdg).sort() };
   }, [base, sliders]);
 
   // ── AI 시나리오 분석 ──

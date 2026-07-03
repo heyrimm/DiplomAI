@@ -85,6 +85,7 @@ export default function Home() {
   };
 
   const handleGenerateRecommendations = async () => {
+    if (!selectedId) return;
     setLoadingRec(true);
     try {
       const res = await api.getRecommendations(selectedId);
@@ -190,13 +191,13 @@ export default function Home() {
 
                 {diplomacy?.kf_index != null ? (
                   <div className="metric-cell">
-                    <span className="m-label">KF 공공외교 지수</span>
+                    <span className="m-label">공공외교 지수</span>
                     <span className="m-value">{diplomacy.kf_index}<span style={{fontSize:13,fontWeight:400,color:"var(--muted)"}}>/100</span></span>
                     <span className="m-sub neutral">{diplomacy.rank_in_region}</span>
                   </div>
                 ) : (
                   <div className="metric-cell">
-                    <span className="m-label">KF 공공외교 지수</span>
+                    <span className="m-label">공공외교 지수</span>
                     <span className="m-value">—</span>
                     <span className="m-sub neutral">데이터 없음</span>
                   </div>
@@ -238,7 +239,7 @@ export default function Home() {
                     <h2 className="tab-page-title">ODA 예산 분석 — {country.name}</h2>
                     <span className="tab-page-sub">KOICA 국가별 지원실적 · {budget?.year ?? 2023}년</span>
                   </div>
-                  <OdaTab countryId={selectedId} budget={budget} gaps={gaps} peer={peer} />
+                  <OdaTab countryId={selectedId ?? ""} budget={budget} gaps={gaps} peer={peer} />
                   <AiRecommendationCards
                     recommendations={recommendations}
                     loading={loadingRec}
@@ -259,7 +260,7 @@ export default function Home() {
                 <>
                   <div className="tab-page-header">
                     <h2 className="tab-page-title">공공외교 현황 — {country.name}</h2>
-                    <span className="tab-page-sub">KF 공공외교 통계 · 세종학당재단 연차보고서</span>
+                    <span className="tab-page-sub">세종학당재단 · 외교부 재외동포현황 · data.go.kr 재외공관 API</span>
                   </div>
                   <DiplomacyTab data={diplomacy} />
                 </>

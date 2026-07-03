@@ -1,10 +1,40 @@
 "use client";
 
-import type { DiplomacyResponse } from "@/types";
+import type { DiplomacyResponse, SejongYearCount } from "@/types";
 import HorizontalBarChart from "@/components/HorizontalBarChart";
 
 interface Props {
   data: DiplomacyResponse | null;
+}
+
+function SejongTrendBars({ history }: { history: SejongYearCount[] }) {
+  const max = Math.max(...history.map((h) => h.count), 1);
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      {history.map((h) => (
+        <div key={h.year} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ width: 36, fontSize: 12, color: "var(--muted)", textAlign: "right" }}>
+            {h.year}
+          </span>
+          <div style={{ flex: 1, background: "var(--line)", borderRadius: 3, height: 14, overflow: "hidden" }}>
+            <div
+              style={{
+                width: `${(h.count / max) * 100}%`,
+                height: "100%",
+                background: "var(--accent)",
+                borderRadius: 3,
+                minWidth: h.count > 0 ? 3 : 0,
+                transition: "width 0.4s ease",
+              }}
+            />
+          </div>
+          <span style={{ width: 56, fontSize: 12, color: "var(--ink-soft)", textAlign: "right" }}>
+            {h.count > 0 ? h.count.toLocaleString() : "—"}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export default function DiplomacyTab({ data }: Props) {
@@ -16,25 +46,30 @@ export default function DiplomacyTab({ data }: Props) {
     );
   }
 
-  const hasKfData = data.kf_index != null;
+  const hasRealData = data.korean_learners != null || data.diaspora_count != null;
   const channelItems = (data.channels ?? []).map((c) => ({
     label: c.label,
     value: Number(c.score),
     unit: "점",
-    color: Number(c.score) < 50 ? "bg-amber-400" : "",
+    color: Number(c.score) < 40 ? "bg-amber-400" : "",
   }));
 
   return (
     <div className="stack">
-      {/* KPI row */}
+      {/* KPI 행 */}
       <div className="grid-3">
         <div className="kpi-card">
-          <span className="kpi-label">한국어 학습자</span>
+          <span className="kpi-label">한국어 학습자 (세종학당)</span>
           {data.korean_learners != null ? (
             <>
-              <span className="kpi-value">{data.korean_learners.toLocaleString()}<span className="kpi-unit">명</span></span>
+              <span className="kpi-value">
+                {data.korean_learners.toLocaleString()}
+                <span className="kpi-unit">명</span>
+              </span>
               {data.learners_yoy != null && (
-                <span className="kpi-trend up">↑ +{data.learners_yoy}% YoY</span>
+                <span className={`kpi-trend ${data.learners_yoy >= 0 ? "up" : "down"}`}>
+                  {data.learners_yoy >= 0 ? "↑" : "↓"} {data.learners_yoy >= 0 ? "+" : ""}{data.learners_yoy}% YoY
+                </span>
               )}
             </>
           ) : (
@@ -43,25 +78,30 @@ export default function DiplomacyTab({ data }: Props) {
         </div>
 
         <div className="kpi-card">
-          <span className="kpi-label">KF 공공외교 지수</span>
+          <span className="kpi-label">재외동포</span>
+          {data.diaspora_count != null && data.diaspora_count > 0 ? (
+            <span className="kpi-value">
+              {data.diaspora_count >= 10000
+                ? `${(data.diaspora_count / 10000).toFixed(1)}`
+                : data.diaspora_count.toLocaleString()}
+              <span className="kpi-unit">{data.diaspora_count >= 10000 ? "만명" : "명"}</span>
+            </span>
+          ) : (
+            <span className="kpi-value" style={{ fontSize: 20, color: "var(--faint)" }}>—</span>
+          )}
+        </div>
+
+        <div className="kpi-card">
+          <span className="kpi-label">공공외교 지수</span>
           {data.kf_index != null ? (
             <>
-              <span className="kpi-value">{data.kf_index}<span className="kpi-unit">/100</span></span>
-              <span className="kpi-trend neutral">{data.rank_in_region}</span>
-            </>
-          ) : (
-            <span className="kpi-value" style={{ fontSize: 20, color: "var(--faint)" }}>—</span>
-          )}
-        </div>
-
-        <div className="kpi-card">
-          <span className="kpi-label">한국 관광객</span>
-          {data.tourists != null ? (
-            <>
-              <span className="kpi-value">{(data.tourists / 1000).toFixed(0)}<span className="kpi-unit">K</span></span>
-              {data.tourists_yoy != null && (
-                <span className="kpi-trend up">↑ +{data.tourists_yoy}% YoY</span>
-              )}
+              <span className="kpi-value">
+                {data.kf_index}
+                <span className="kpi-unit">/100</span>
+              </span>
+              <span className="kpi-trend neutral">
+                {data.embassy_count != null ? `재외공관 ${data.embassy_count}개소` : data.rank_in_region}
+              </span>
             </>
           ) : (
             <span className="kpi-value" style={{ fontSize: 20, color: "var(--faint)" }}>—</span>
@@ -69,7 +109,7 @@ export default function DiplomacyTab({ data }: Props) {
         </div>
       </div>
 
-      {/* AI insight */}
+      {/* AI 인사이트 */}
       <div className="ai-insight">
         <div>
           <p className="ai-insight-label">✦ AI 인사이트</p>
@@ -78,81 +118,86 @@ export default function DiplomacyTab({ data }: Props) {
       </div>
 
       {/* 데이터 없는 국가 안내 */}
-      {!hasKfData && (
+      {!hasRealData && (
         <div className="gap-banner info">
           <span className="gap-banner-icon">ℹ</span>
           <div>
-            <p className="gap-banner-title">KF 공공외교 상세 데이터 미수집</p>
-            <p className="gap-banner-desc">이 국가의 KF 공공외교 통계는 아직 수집되지 않았습니다. 현재 인도네시아·베트남·캄보디아·에티오피아의 상세 데이터를 제공합니다.</p>
+            <p className="gap-banner-title">공공외교 데이터 미수집</p>
+            <p className="gap-banner-desc">
+              이 국가의 세종학당·재외동포 통계가 수집되지 않았습니다.
+            </p>
           </div>
         </div>
       )}
 
-      {/* Charts — 데이터 있을 때만 */}
-      {channelItems.length > 0 && (
+      {/* 차트 행 */}
+      {(channelItems.length > 0 || (data.sejong_history && data.sejong_history.length > 0)) && (
         <div className="grid-2">
-          <div className="card">
-            <div className="card-body">
-              <p className="card-title" style={{ marginBottom: 14 }}>채널별 공공외교 현황</p>
-              <HorizontalBarChart
-                items={channelItems}
-                maxValue={100}
-                source="KF 공공외교 통계센터 2023"
-              />
-            </div>
-          </div>
-
-          {(data.trends ?? []).length > 0 && (
+          {channelItems.length > 0 && (
             <div className="card">
               <div className="card-body">
-                <p className="card-title" style={{ marginBottom: 14 }}>주요 트렌드 변화</p>
-                <div className="stack">
-                  {data.trends.map((t) => (
-                    <div key={t.label} style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      padding: "8px 0",
-                      borderBottom: "1px solid var(--line)",
-                    }}>
-                      <span style={{ fontSize: 13.5, color: "var(--ink-soft)" }}>{t.label}</span>
-                      <span style={{
-                        fontSize: 13.5,
-                        fontWeight: 600,
-                        color: t.value.startsWith("+") ? "var(--success)" : "var(--danger)",
-                      }}>
-                        {t.value}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                <p className="chart-source">출처: 세종학당재단 연차보고서 2023</p>
+                <p className="card-title" style={{ marginBottom: 14 }}>채널별 공공외교 현황</p>
+                <HorizontalBarChart
+                  items={channelItems}
+                  maxValue={100}
+                  source="세종학당재단 (2025) · 외교부 재외동포현황 (2021)"
+                />
+              </div>
+            </div>
+          )}
+
+          {data.sejong_history && data.sejong_history.length > 0 && (
+            <div className="card">
+              <div className="card-body">
+                <p className="card-title" style={{ marginBottom: 14 }}>세종학당 수강생 추이</p>
+                <SejongTrendBars history={data.sejong_history} />
+                <p className="chart-source" style={{ marginTop: 12 }}>
+                  출처: 세종학당재단 국가별 수강생 현황 2025
+                </p>
               </div>
             </div>
           )}
         </div>
       )}
 
-      {/* Timeline — 데이터 있을 때만 */}
-      {(data.timeline ?? []).length > 0 && (
+      {/* 추이 카드 */}
+      {(data.trends ?? []).length > 0 && (
         <div className="card">
           <div className="card-body">
-            <p className="card-title" style={{ marginBottom: 16 }}>공공외교 타임라인</p>
-            <div className="timeline">
-              {data.timeline.map((t) => (
-                <div key={t.year} className="timeline-item">
-                  <span className="timeline-year">{t.year}</span>
-                  <span className="timeline-dot" />
-                  <div className="timeline-content">
-                    <p className="timeline-event">{t.event}</p>
-                    <p className="timeline-detail">{t.detail}</p>
-                  </div>
-                  <span className="timeline-tag">{t.tag}</span>
+            <p className="card-title" style={{ marginBottom: 14 }}>주요 지표 변화</p>
+            <div className="stack">
+              {data.trends.map((t) => (
+                <div
+                  key={t.label}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "8px 0",
+                    borderBottom: "1px solid var(--line)",
+                  }}
+                >
+                  <span style={{ fontSize: 13.5, color: "var(--ink-soft)" }}>{t.label}</span>
+                  <span
+                    style={{
+                      fontSize: 13.5,
+                      fontWeight: 600,
+                      color: t.value.startsWith("+") ? "var(--success)" : "var(--danger)",
+                    }}
+                  >
+                    {t.value}
+                  </span>
                 </div>
               ))}
             </div>
-            <p className="chart-source">출처: KF 한국국제교류재단, 외교부 공공외교 포털</p>
           </div>
+        </div>
+      )}
+
+      {/* 데이터 출처 */}
+      {(data.data_sources ?? []).length > 0 && (
+        <div style={{ padding: "8px 0", fontSize: 11.5, color: "var(--faint)" }}>
+          출처: {data.data_sources!.join(" · ")}
         </div>
       )}
     </div>

@@ -169,19 +169,19 @@ export default function ReportTab({ country, budget, gaps, diplomacy, recommenda
 
             {selected.has("diplomacy") && diplomacy && (
               <div className="report-section">
-                <p className="report-section-title">4. 공공외교 현황 (KF 통계센터 2023)</p>
+                <p className="report-section-title">4. 공공외교 현황 (세종학당재단 · 외교부 재외동포현황 2023)</p>
                 <div className="grid-3" style={{ gap: 8 }}>
                   <div style={{ textAlign: "center", padding: 12, background: "var(--surface-2)", borderRadius: "var(--r-md)" }}>
-                    <p style={{ fontSize: 11.5, color: "var(--muted)" }}>KF 공공외교 지수</p>
+                    <p style={{ fontSize: 11.5, color: "var(--muted)" }}>공공외교 지수</p>
                     <p style={{ fontSize: 20, fontWeight: 700, marginTop: 4 }}>{diplomacy.kf_index}/100</p>
                   </div>
                   <div style={{ textAlign: "center", padding: 12, background: "var(--surface-2)", borderRadius: "var(--r-md)" }}>
                     <p style={{ fontSize: 11.5, color: "var(--muted)" }}>한국어 학습자</p>
-                    <p style={{ fontSize: 20, fontWeight: 700, marginTop: 4 }}>{diplomacy.korean_learners.toLocaleString()}</p>
+                    <p style={{ fontSize: 20, fontWeight: 700, marginTop: 4 }}>{diplomacy.korean_learners?.toLocaleString() ?? "—"}</p>
                   </div>
                   <div style={{ textAlign: "center", padding: 12, background: "var(--surface-2)", borderRadius: "var(--r-md)" }}>
                     <p style={{ fontSize: 11.5, color: "var(--muted)" }}>한국 관광객</p>
-                    <p style={{ fontSize: 20, fontWeight: 700, marginTop: 4 }}>{(diplomacy.tourists / 1000).toFixed(0)}K</p>
+                    <p style={{ fontSize: 20, fontWeight: 700, marginTop: 4 }}>{diplomacy.tourists != null ? `${(diplomacy.tourists / 1000).toFixed(0)}K` : "—"}</p>
                   </div>
                 </div>
                 <p style={{ fontSize: 13.5, color: "var(--ink-soft)", marginTop: 12, lineHeight: 1.6 }}>

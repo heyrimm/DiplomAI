@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import type {
   Country, OdaBudgetResponse, OdaGapsResponse,
-  Recommendation, TravelAlarm, SafetyNoticesResponse,
+  Recommendation, TravelAlarm, SafetyNoticesResponse, AlarmHistoryItem,
 } from "@/types";
 import HorizontalBarChart from "@/components/HorizontalBarChart";
 
@@ -47,6 +47,7 @@ export default function OverviewTab({
 }: Props) {
   const [alarmOverview, setAlarmOverview] = useState<AlarmOverview | null>(null);
   const [showAllLevel, setShowAllLevel] = useState<string | null>(null);
+  const [alarmHistory, setAlarmHistory] = useState<AlarmHistoryItem[]>([]);
 
   useEffect(() => {
     fetch("/api/safety/overview")
@@ -54,6 +55,14 @@ export default function OverviewTab({
       .then(setAlarmOverview)
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    setAlarmHistory([]);
+    fetch(`/api/safety/${encodeURIComponent(country.id)}/alarm-history`)
+      .then((r) => r.json())
+      .then((d) => setAlarmHistory(d.history ?? []))
+      .catch(() => {});
+  }, [country.id]);
 
   const totalBudget = budget?.total_억원 ?? budget?.sectors.reduce((s, i) => s + i.budget, 0) ?? 0;
   const yoyPct      = budget?.yoy_pct;
@@ -181,7 +190,7 @@ export default function OverviewTab({
                     country.gii != null
                       ? ["젠더불평등지수", country.gii.toFixed(3)]
                       : null,
-                  ] as ([string, string] | null)[]).filter(Boolean).map(([k, v]) => (
+                  ] as ([string, string] | null)[]).filter((x): x is [string, string] => x !== null).map(([k, v]) => (
                     <div key={k} style={{ display: "flex", justifyContent: "space-between", fontSize: 13.5 }}>
                       <span style={{ color: "var(--muted)" }}>{k}</span>
                       <span style={{ color: "var(--ink)", fontWeight: 500 }}>{v}</span>
@@ -207,6 +216,42 @@ export default function OverviewTab({
               <span className="badge badge-blue">{recommendations[0].sector}</span>
               <span className="badge badge-neutral">{recommendations[0].budget_estimate}</span>
               <span className="badge badge-neutral">{recommendations[0].duration}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── 여행경보 조정 이력 ── */}
+      {alarmHistory.length > 0 && (
+        <div className="card">
+          <div className="card-body">
+            <div className="card-head" style={{ marginBottom: 14 }}>
+              <div>
+                <p className="card-title">여행경보 조정 이력</p>
+                <p className="card-meta">출처: 외교부 여행경보 조정 (data.go.kr)</p>
+              </div>
+            </div>
+            <div className="stack">
+              {alarmHistory.map((h, i) => (
+                <div key={i} style={{
+                  paddingBottom: i < alarmHistory.length - 1 ? 12 : 0,
+                  borderBottom: i < alarmHistory.length - 1 ? "1px solid var(--line)" : "none",
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+                    <p style={{ fontSize: 13, fontWeight: 500, color: "var(--ink)", lineHeight: 1.4, flex: 1 }}>
+                      {h.title}
+                    </p>
+                    <span style={{ fontSize: 11.5, color: "var(--muted)", whiteSpace: "nowrap", flexShrink: 0 }}>
+                      {h.date}
+                    </span>
+                  </div>
+                  {h.summary && (
+                    <p style={{ fontSize: 12.5, color: "var(--ink-soft)", marginTop: 4, lineHeight: 1.5 }}>
+                      {h.summary.slice(0, 120)}{h.summary.length > 120 ? "…" : ""}
+                    </p>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         </div>
