@@ -118,7 +118,7 @@ export default function Home() {
 
         {/* Sticky top nav */}
         <header className="app-nav">
-          <div className="brand-mark">
+          <div className="brand-mark" onClick={() => setSelectedId(null)} style={{ cursor: "pointer" }}>
             <span className="brand-icon">D</span>
             DiplomAI
           </div>
