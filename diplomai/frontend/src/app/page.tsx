@@ -23,6 +23,7 @@ import DiplomacyTab from "@/components/tabs/DiplomacyTab";
 import SimulationTab from "@/components/tabs/SimulationTab";
 import ReportTab from "@/components/tabs/ReportTab";
 import AiRecommendationCards from "@/components/AiRecommendationCards";
+import GlobalDashboard from "@/components/GlobalDashboard";
 
 export default function Home() {
   const [selectedId, setSelectedId]   = useState<string | null>(null);
@@ -139,18 +140,8 @@ export default function Home() {
             </div>
           )}
 
-          {/* 국가 미선택 웰컴 화면 */}
-          {!selectedId && !loading && (
-            <div className="welcome-state">
-              <div className="welcome-icon">🌏</div>
-              <h2 className="welcome-title">분석할 국가를 검색하세요</h2>
-              <p className="welcome-desc">
-                KOICA 지원 실적이 있는 <strong>150개+ 국가</strong>를 검색할 수 있습니다.<br />
-                상단 검색창에 나라 이름을 입력하거나 추천 목록에서 선택하세요.
-              </p>
-              <p className="welcome-hint">예: 인도네시아 · 베트남 · 케냐 · 볼리비아</p>
-            </div>
-          )}
+          {/* 국가 미선택 — 글로벌 대시보드 */}
+          {!selectedId && !loading && <GlobalDashboard />}
 
           {/* 로딩 상태 */}
           {loading && (
