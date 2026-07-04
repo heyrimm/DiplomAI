@@ -125,6 +125,29 @@ def get_sector_proportions(ko_name: str) -> dict[str, float] | None:
     return props if props else None
 
 
+def get_regional_sector_proportions(region_ko: str) -> dict[str, float]:
+    """
+    지역(한국어) 내 국가들의 섹터별 누적 지원 비율 평균.
+    예: "동남아시아" → {"교육": 0.25, "보건": 0.20, ...}
+    원형 임포트 방지를 위해 함수 내에서 COUNTRY_META를 로드.
+    """
+    from data.country_meta import COUNTRY_META  # pylint: disable=import-outside-toplevel
+
+    buckets: dict[str, list[float]] = {}
+    for ko_name, meta in COUNTRY_META.items():
+        if meta.get("region") != region_ko:
+            continue
+        props = get_sector_proportions(ko_name)
+        if not props:
+            continue
+        for sector, p in props.items():
+            buckets.setdefault(sector, []).append(p)
+
+    if not buckets:
+        return {}
+    return {s: round(sum(vs) / len(vs), 4) for s, vs in buckets.items()}
+
+
 def get_sector_breakdown(ko_name: str, annual_total_억원: float) -> list[dict] | None:
     """
     연간 총액(억원)을 실제 섹터 비율로 분배한 리스트 반환.

@@ -54,6 +54,8 @@ export interface Recommendation {
   expected_impact: string;
   priority: "high" | "medium" | "low";
   sdg?: string[];
+  type?: "oda" | "diplomacy";
+  data_citation?: string;
 }
 
 export interface RecommendationsResponse {

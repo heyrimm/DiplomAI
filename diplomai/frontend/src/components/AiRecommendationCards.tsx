@@ -23,12 +23,21 @@ const PRIORITY_LABEL: Record<string, string> = {
 
 function RecCard({ rec }: { rec: Recommendation }) {
   const tagCls = PRIORITY_TAG[rec.priority] ?? "";
+  const isDiplomacy = rec.type === "diplomacy";
 
   return (
     <div className="rec-card">
       <div className="rec-card-head">
-        <p className="rec-card-title">{rec.title}</p>
-        <span className={`badge ${tagCls === "high" ? "badge-blue" : tagCls === "medium" ? "badge-neutral" : "badge-neutral"}`}
+        <div style={{ display: "flex", alignItems: "center", gap: 7, flex: 1, minWidth: 0 }}>
+          {isDiplomacy && (
+            <span style={{
+              fontSize: 10.5, padding: "2px 7px", borderRadius: 4, flexShrink: 0,
+              background: "rgba(16,185,129,.12)", color: "#059669", fontWeight: 700,
+            }}>공공외교</span>
+          )}
+          <p className="rec-card-title" style={{ margin: 0 }}>{rec.title}</p>
+        </div>
+        <span className={`badge ${tagCls === "high" ? "badge-blue" : "badge-neutral"}`}
           style={{ flexShrink: 0 }}>
           {PRIORITY_LABEL[rec.priority] ?? rec.priority}
         </span>
@@ -51,6 +60,11 @@ function RecCard({ rec }: { rec: Recommendation }) {
         <p className="rec-section-label">기대 효과</p>
         <p className="rec-body">{rec.expected_impact}</p>
       </div>
+      {rec.data_citation && (
+        <p style={{ fontSize: 11, color: "var(--faint)", marginTop: 6 }}>
+          출처: {rec.data_citation}
+        </p>
+      )}
     </div>
   );
 }

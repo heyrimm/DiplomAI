@@ -6,6 +6,7 @@ from services.koica_indicators import (
     get_sector_breakdown,
     get_national_sector_weights,
     get_sdg_goals,
+    get_regional_sector_proportions,
 )
 
 router = APIRouter(prefix="/api/oda", tags=["oda"])
@@ -107,34 +108,44 @@ def get_oda_gaps(country_id: str):
         raise HTTPException(status_code=404, detail=f"Country not found: {country_id}")
 
     region_ko  = meta.get("region", "")
-    region_key = REGION_KEY_MAP.get(region_ko, "southeast_asia")
-    avg        = REGIONAL_AVERAGES.get(region_key, REGIONAL_AVERAGES["southeast_asia"])
-
     total      = _get_total(country_id)
     real_total = total["budget_억원"]
     sectors    = _build_sectors(country_id, real_total)
 
+    if real_total <= 0 or not sectors:
+        return {
+            "country_id":        country_id,
+            "region":            region_ko,
+            "threshold_percent": GAP_THRESHOLD * 100,
+            "gaps":              [],
+        }
+
+    # KOICA CSV 실데이터 기반 지역 평균 섹터 비율로 비율 비교
+    regional_props = get_regional_sector_proportions(region_ko)
+    country_total  = sum(s["budget"] for s in sectors) or 1.0
+
     gaps = []
     for item in sectors:
-        sector       = item["sector"]
-        budget       = item["budget"]
-        regional_avg = avg.get(sector, 0)
-        if regional_avg > 0:
-            ratio = budget / regional_avg
-            if ratio < (1 - GAP_THRESHOLD):
-                gaps.append({
-                    "sector":          sector,
-                    "current_budget":  budget,
-                    "regional_average": regional_avg,
-                    "ratio":           round(ratio, 2),
-                    "gap_percent":     round((1 - ratio) * 100, 1),
-                })
+        sector      = item["sector"]
+        country_pct = item["budget"] / country_total
+        reg_pct     = regional_props.get(sector, 0)
+        if reg_pct <= 0:
+            continue
+        ratio = country_pct / reg_pct
+        if ratio < (1 - GAP_THRESHOLD):
+            gaps.append({
+                "sector":           sector,
+                "current_budget":   round(item["budget"], 1),
+                "regional_average": round(reg_pct * real_total, 1),
+                "ratio":            round(ratio, 2),
+                "gap_percent":      round((1 - ratio) * 100, 1),
+            })
 
     return {
-        "country_id":       country_id,
-        "region":           region_key,
+        "country_id":        country_id,
+        "region":            region_ko,
         "threshold_percent": GAP_THRESHOLD * 100,
-        "gaps":             sorted(gaps, key=lambda x: x["ratio"]),
+        "gaps":              sorted(gaps, key=lambda x: x["ratio"]),
     }
 
 

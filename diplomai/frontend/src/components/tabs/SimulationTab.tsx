@@ -272,7 +272,7 @@ export default function SimulationTab({ countryId }: Props) {
             </div>
 
             <div className="sim-result-card">
-              <span className="sim-result-label">수혜 인구 변화</span>
+              <span className="sim-result-label">수혜 인구 변화 <span style={{ fontSize: 10, fontWeight: 400, opacity: .6 }}>(추정)</span></span>
               <span className="sim-result-value" style={{
                 fontSize: 18,
                 color: !calc || calc.deltaBeneficiaries === 0 ? "var(--faint)"
@@ -286,7 +286,7 @@ export default function SimulationTab({ countryId }: Props) {
             </div>
 
             <div className="sim-result-card">
-              <span className="sim-result-label">SDG 기여 변화</span>
+              <span className="sim-result-label">SDG 기여 변화 <span style={{ fontSize: 10, fontWeight: 400, opacity: .6 }}>(추정)</span></span>
               <span className="sim-result-value" style={{
                 color: !calc || calc.deltaSdgScore === 0 ? "var(--faint)"
                      : calc.deltaSdgScore > 0 ? "var(--success)" : "#ef4444",
@@ -302,6 +302,11 @@ export default function SimulationTab({ countryId }: Props) {
               </span>
             </div>
           </div>
+
+          {/* 추정치 안내 */}
+          <p style={{ fontSize: 10.5, color: "var(--faint)", textAlign: "right", marginTop: -4 }}>
+            ※ 모든 수치는 추정치 — 교육 HDI +0.000120/억원, 보건 +0.000100/억원 (KOICA 지표 기반 회귀)
+          </p>
 
           {/* 영향 SDG 목록 */}
           {calc && calc.affectedSdg.length > 0 && (
