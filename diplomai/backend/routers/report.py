@@ -59,13 +59,18 @@ async def generate_report(req: ReportRequest):
 - 한국어 학습자 (세종학당): {sejong_str}
 - 재외동포: {diaspora_str}"""
 
-    client = anthropic.Anthropic(api_key=api_key)
-    msg = client.messages.create(
-        model="claude-haiku-4-5-20251001",
-        max_tokens=400,
-        messages=[{"role": "user", "content": prompt}],
-    )
-    executive_summary = msg.content[0].text.strip()
+    try:
+        client = anthropic.Anthropic(api_key=api_key)
+        msg = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=400,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        executive_summary = msg.content[0].text.strip()
+    except anthropic.APIError as e:
+        raise HTTPException(status_code=502, detail=f"Claude API 오류: {e}")
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"보고서 생성 실패: {e}")
 
     result = {"country_id": country_id, "executive_summary": executive_summary}
     _CACHE[cache_key] = {"data": result, "ts": time.time()}
