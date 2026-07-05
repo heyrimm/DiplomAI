@@ -121,6 +121,17 @@ export default function DiplomacyTab({ data }: Props) {
         </div>
       </div>
 
+      {/* 공공외교 공백 신호 */}
+      {data.kf_gap?.is_gap && (
+        <div className="gap-banner">
+          <span className="gap-banner-icon">⚠</span>
+          <div>
+            <p className="gap-banner-title">공공외교 공백 신호</p>
+            <p className="gap-banner-desc">{data.kf_gap.reason}</p>
+          </div>
+        </div>
+      )}
+
       {/* 데이터 없는 국가 안내 */}
       {!hasRealData && (
         <div className="gap-banner info">
@@ -129,6 +140,96 @@ export default function DiplomacyTab({ data }: Props) {
             <p className="gap-banner-title">공공외교 데이터 미수집</p>
             <p className="gap-banner-desc">
               이 국가의 세종학당·재외동포 통계가 수집되지 않았습니다.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* 한국학 · KF 사업 이력 */}
+      {(data.korean_studies || data.kf_projects) && (
+        <div className="grid-2">
+          {data.korean_studies && (
+            <div className="card">
+              <div className="card-body">
+                <p className="card-title" style={{ marginBottom: 12 }}>한국학 현황</p>
+                <p style={{ fontSize: 22, fontWeight: 700 }}>
+                  {data.korean_studies.universities}
+                  <span style={{ fontSize: 13, fontWeight: 500, color: "var(--muted)" }}> 개 대학 운영</span>
+                </p>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
+                  {[
+                    ["학사", data.korean_studies.bachelor],
+                    ["석사", data.korean_studies.master],
+                    ["박사", data.korean_studies.doctoral],
+                    ["교양·어학", data.korean_studies.sejong],
+                    ["코리아코너", data.korean_studies.korea_corner],
+                  ].filter(([, n]) => Number(n) > 0).map(([label, n]) => (
+                    <span key={String(label)} style={{
+                      fontSize: 12, padding: "3px 9px", borderRadius: 20,
+                      background: "var(--surface-2)", color: "var(--ink-soft)",
+                    }}>
+                      {label} {n}
+                    </span>
+                  ))}
+                </div>
+                <p className="chart-source" style={{ marginTop: 12 }}>
+                  출처: KF 해외대학 한국학 과정 운영현황 (data.go.kr, 2025)
+                </p>
+              </div>
+            </div>
+          )}
+
+          {data.kf_projects && (
+            <div className="card">
+              <div className="card-body">
+                <p className="card-title" style={{ marginBottom: 12 }}>KF 공공외교 사업 이력</p>
+                <p style={{ fontSize: 22, fontWeight: 700 }}>
+                  {data.kf_projects.total.toLocaleString()}
+                  <span style={{ fontSize: 13, fontWeight: 500, color: "var(--muted)" }}>
+                    {" "}건 누적 ({data.kf_projects.first_year}~{data.kf_projects.last_year})
+                  </span>
+                </p>
+                <div className="stack" style={{ marginTop: 10, gap: 4 }}>
+                  {data.kf_projects.recent.slice(0, 4).map((p, i) => (
+                    <div key={i} style={{ display: "flex", gap: 8, fontSize: 12.5, alignItems: "baseline" }}>
+                      <span style={{ color: "var(--muted)", flexShrink: 0 }}>{p.year}</span>
+                      <span style={{ color: "var(--ink-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
+                    </div>
+                  ))}
+                </div>
+                <p className="chart-source" style={{ marginTop: 12 }}>
+                  출처: KF 융합 공공외교·ODA 사업정보 (data.go.kr)
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 국내 지자체 교류 선례 (아프리카) */}
+      {data.africa_exchanges && (
+        <div className="card">
+          <div className="card-body">
+            <p className="card-title" style={{ marginBottom: 4 }}>국내 지자체 교류 선례</p>
+            <p style={{ fontSize: 12.5, color: "var(--muted)", marginBottom: 12 }}>
+              국내 지자체가 이 국가와 진행한 교류협력 {data.africa_exchanges.total}건 — 신규 사업 기획 시 연계·벤치마킹 가능
+            </p>
+            <div className="stack">
+              {data.africa_exchanges.cases.map((c, i) => (
+                <div key={i} style={{ padding: "10px 14px", border: "1px solid var(--line)", borderRadius: "var(--r-md)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 10, fontSize: 13 }}>
+                    <span style={{ fontWeight: 600, color: "var(--ink)" }}>
+                      {c.province}{c.city && c.city !== c.province ? ` ${c.city}` : ""}
+                      {c.partner && <span style={{ fontWeight: 400, color: "var(--muted)" }}> ↔ {c.partner}</span>}
+                    </span>
+                    <span style={{ color: "var(--muted)", flexShrink: 0 }}>{c.year} · {c.type}</span>
+                  </div>
+                  <p style={{ fontSize: 12.5, color: "var(--ink-soft)", marginTop: 4, lineHeight: 1.5 }}>{c.desc}</p>
+                </div>
+              ))}
+            </div>
+            <p className="chart-source" style={{ marginTop: 12 }}>
+              출처: 한아프리카재단 지자체-아프리카 교류협력 사례 (data.go.kr, 2023)
             </p>
           </div>
         </div>
@@ -144,7 +245,7 @@ export default function DiplomacyTab({ data }: Props) {
                 <HorizontalBarChart
                   items={channelItems}
                   maxValue={100}
-                  source="세종학당재단 (2025) · 외교부 재외동포현황 (2021)"
+                  source="세종학당재단 (2025) · 외교부 재외동포현황 (2021) · KF 한국학·공공외교 사업정보 (data.go.kr)"
                 />
               </div>
             </div>

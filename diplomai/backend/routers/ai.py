@@ -9,6 +9,7 @@ import anthropic
 from data.country_meta import COUNTRY_META
 from services.koica_csv import get_country_latest, get_country_history
 from services.public_diplomacy import get_sejong, get_diaspora
+from services.kf_data import get_kf_projects, get_korean_studies
 
 router = APIRouter(prefix="/api/ai", tags=["ai"])
 
@@ -24,6 +25,7 @@ class RecommendationRequest(BaseModel):
 def _build_prompt(
     country_id: str, meta: dict, latest: dict | None, history: list,
     sejong: dict | None, diaspora: int | None,
+    kf_projects: dict | None = None, korean_studies: dict | None = None,
 ) -> str:
     history_str = ""
     if history:
@@ -41,6 +43,7 @@ def _build_prompt(
 아래 국가 데이터를 바탕으로 맞춤형 사업 추천 5건을 생성하세요.
 - ODA 개발협력 사업 추천 3건 (type: "oda")
 - 공공외교 강화 사업 추천 2건 (type: "diplomacy")
+공공외교 추천은 KF 사업 이력·한국학 현황을 근거로 하세요 (예: 세종학당 수요는 큰데 한국학 학위과정이 없으면 지식외교 확장, KF 사업 공백이면 신규 채널 개설).
 
 ## 대상 국가
 - 국가명: {country_id} ({meta.get('name_en', '')})
@@ -56,6 +59,13 @@ def _build_prompt(
 ## 공공외교 현황 (세종학당재단 수강생 통계·외교부 재외동포현황 · data.go.kr)
 - 세종학당 한국어 학습자: {sejong_str}
 - 재외동포: {diaspora_str}
+
+## KF 공공외교 사업 이력 (KF 융합 공공외교·ODA 사업정보 · data.go.kr)
+- 누적 사업: {f"{kf_projects['total']}건 ({kf_projects['first_year']}~{kf_projects['last_year']}년)" if kf_projects else "이력 없음 — 공공외교 채널 공백 상태"}
+- 최근 사업 예시: {" / ".join(p["name"][:35] for p in kf_projects["recent"][:3]) if kf_projects else "없음"}
+
+## 한국학 현황 (KF 해외대학 한국학 과정 운영현황 · data.go.kr)
+- 한국학 운영 대학: {f"{korean_studies['universities']}곳 (학사 {korean_studies['bachelor']}·석사 {korean_studies['master']}·박사 {korean_studies['doctoral']})" if korean_studies else "없음"}
 
 ## 출력 형식 (JSON 배열만, 마크다운 없이)
 [
@@ -108,7 +118,9 @@ async def get_recommendations(req: RecommendationRequest):
     history  = get_country_history(country_id)
     sejong   = get_sejong(country_id)
     diaspora = get_diaspora(country_id)
-    prompt   = _build_prompt(country_id, meta, latest, history, sejong, diaspora)
+    kf_proj  = get_kf_projects(country_id)
+    kstudies = get_korean_studies(country_id)
+    prompt   = _build_prompt(country_id, meta, latest, history, sejong, diaspora, kf_proj, kstudies)
 
     try:
         client = anthropic.Anthropic(api_key=api_key)

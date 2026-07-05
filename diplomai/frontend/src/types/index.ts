@@ -179,6 +179,39 @@ export interface ReportGenerateResponse {
   cached?: boolean;
 }
 
+export interface KoreanStudies {
+  universities: number;
+  bachelor: number;
+  master: number;
+  doctoral: number;
+  sejong: number;
+  korea_corner: number;
+}
+
+export interface KfProjects {
+  total: number;
+  first_year: number | null;
+  last_year: number | null;
+  recent: { name: string; year: string }[];
+}
+
+export interface AfricaExchanges {
+  total: number;
+  cases: {
+    province: string;
+    city: string;
+    partner: string;
+    year: string;
+    type: string;
+    desc: string;
+  }[];
+}
+
+export interface KfGap {
+  is_gap: boolean;
+  reason: string;
+}
+
 export interface DiplomacyResponse {
   country_id: string;
   kf_index: number | null;
@@ -187,6 +220,10 @@ export interface DiplomacyResponse {
   diaspora_count: number | null;
   embassy_count: number | null;
   sejong_history: SejongYearCount[] | null;
+  korean_studies?: KoreanStudies | null;
+  kf_projects?: KfProjects | null;
+  africa_exchanges?: AfricaExchanges | null;
+  kf_gap?: KfGap | null;
   tourists: number | null;
   tourists_yoy: number | null;
   rank_in_region: string;

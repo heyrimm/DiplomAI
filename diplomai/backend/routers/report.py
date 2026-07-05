@@ -15,6 +15,7 @@ import anthropic
 from data.country_meta import COUNTRY_META
 from services.koica_csv import get_country_latest, get_country_history
 from services.public_diplomacy import get_sejong, get_diaspora
+from services.kf_data import get_kf_projects, get_korean_studies, get_africa_exchanges
 from services.mofa_api import fetch_travel_alarm
 from routers.oda import get_oda_gaps
 
@@ -58,13 +59,27 @@ def _country_data_block(country_id: str, meta: dict) -> str:
     )
     diaspora_str = f"{diaspora:,}명" if diaspora else "없음"
 
+    kf_proj  = get_kf_projects(country_id)
+    kstudies = get_korean_studies(country_id)
+    kf_str = (
+        f"{kf_proj['total']}건 누적 ({kf_proj['first_year']}~{kf_proj['last_year']}년), 최근: "
+        + " / ".join(p["name"][:30] for p in kf_proj["recent"][:3])
+        if kf_proj else "이력 없음 — 공공외교 채널 공백"
+    )
+    kstudies_str = (
+        f"{kstudies['universities']}곳 (학사 {kstudies['bachelor']}·석사 {kstudies['master']}·박사 {kstudies['doctoral']})"
+        if kstudies else "없음"
+    )
+
     return f"""## 국가: {country_id} ({meta.get('name_en', '')})
 - 지역: {meta.get('region', '')} | 소득: {meta.get('income_level', '')} | HDI: {meta.get('hdi', 0)}
 - 인구: {meta.get('population', 0):,}명 | 1인당 GDP: USD {meta.get('gdp_per_capita', 0):,}
 - KOICA 최근 지원: {f"{latest['budget_억원']}억원 ({latest['year']}년), 전년비 {yoy_str}" if latest else "없음"} (출처: KOICA 국가별 지원실적 CSV · data.go.kr)
 - 최근 5년 추이: {history_str}
 - 한국어 학습자 (세종학당재단·문체부 산하): {sejong_str}
-- 재외동포 (외교부 재외동포현황 2021): {diaspora_str}"""
+- 재외동포 (외교부 재외동포현황 2021): {diaspora_str}
+- KF 공공외교 사업 이력 (KF 융합 데이터 · data.go.kr): {kf_str}
+- 한국학 운영 대학 (KF 한국학 과정 현황 · data.go.kr): {kstudies_str}"""
 
 
 def _gaps_block(country_id: str) -> str:
@@ -116,6 +131,20 @@ async def _generate_plan(country_id: str, meta: dict, base_rec: dict | None) -> 
         if alarm else "정보 없음"
     )
 
+    africa_block = ""
+    exchanges = get_africa_exchanges(country_id) if "아프리카" in meta.get("region", "") else None
+    if exchanges:
+        cases_str = "\n".join(
+            f"- {c['province']} {c['city']} ({c['year']}, {c['type']}): {c['desc'][:50]}"
+            for c in exchanges["cases"][:3]
+        )
+        africa_block = f"""
+
+## 국내 지자체 교류 선례 (한아프리카재단 지자체-아프리카 교류협력 사례 · data.go.kr)
+누적 {exchanges['total']}건. 최근 사례:
+{cases_str}
+→ 활동 설계 시 기존 지자체 교류와의 연계 가능성을 검토하세요."""
+
     base_block = ""
     if base_rec:
         base_block = f"""
@@ -136,7 +165,7 @@ async def _generate_plan(country_id: str, meta: dict, base_rec: dict | None) -> 
 {_gaps_block(country_id)}
 
 ## 여행경보 (외교부 여행경보 API · data.go.kr)
-- 현재 단계: {alarm_str}
+- 현재 단계: {alarm_str}{africa_block}
 {base_block}
 
 ## 출력 형식 — 아래 구조의 JSON 객체만 출력 (마크다운·설명 없이)
