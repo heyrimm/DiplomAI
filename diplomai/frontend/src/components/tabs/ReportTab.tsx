@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
+import CitedText, { stripCites } from "@/components/CitedText";
 import type {
   Country, OdaBudgetResponse, OdaGapsResponse,
   DiplomacyResponse, Recommendation, ProjectPlan,
@@ -161,7 +162,7 @@ export default function ReportTab({
         lines.push(`### ${i + 1}. ${r.title}`,
           `- **유형:** ${r.type === "diplomacy" ? "공공외교" : "ODA"}`,
           `- **분야:** ${r.sector} / **예산:** ${r.budget_estimate} / **기간:** ${r.duration}`,
-          `- **추진 근거:** ${r.rationale}`,
+          `- **추진 근거:** ${stripCites(r.rationale)}`,
           `- **기대 효과:** ${r.expected_impact}`);
         if (r.data_citation) lines.push(`- **데이터:** ${r.data_citation}`);
         lines.push(``);
@@ -179,18 +180,18 @@ export default function ReportTab({
       `**유형:** ${plan.type === "diplomacy" ? "공공외교" : "ODA"}${plan.duration ? ` · 기간 ${plan.duration}` : ""}  `,
       `**작성일:** ${today} · DiplomAI 자동 생성 초안 (Claude AI · 공공데이터 기반)`,
       ``,
-      `## 1. 추진 배경`, ``, plan.background, ``,
+      `## 1. 추진 배경`, ``, stripCites(plan.background), ``,
       `## 2. 사업 목표`, ``,
-      ...plan.objectives.map((o, i) => `${i + 1}. ${o}`), ``,
-      `## 3. 대상·수혜자`, ``, plan.target_beneficiaries, ``,
+      ...plan.objectives.map((o, i) => `${i + 1}. ${stripCites(o)}`), ``,
+      `## 3. 대상·수혜자`, ``, stripCites(plan.target_beneficiaries), ``,
       `## 4. 활동 내용`, ``,
-      ...plan.activities.flatMap((a, i) => [`### 4-${i + 1}. ${a.name}`, a.description, ``]),
+      ...plan.activities.flatMap((a, i) => [`### 4-${i + 1}. ${a.name}`, stripCites(a.description), ``]),
       `## 5. 예산 계획`, ``, `| 항목 | 금액 |`, `|------|------|`,
       ...plan.budget_plan.map(b => `| ${b.item} | ${b.amount} |`), ``,
       `## 6. 성과지표 (KPI)`, ``, `| 지표 | 목표치 |`, `|------|--------|`,
       ...plan.kpis.map(k => `| ${k.indicator} | ${k.target} |`), ``,
       `## 7. 리스크 및 대응`, ``,
-      ...plan.risks.map(r => `- **${r.risk}** → ${r.mitigation}`), ``,
+      ...plan.risks.map(r => `- **${stripCites(r.risk)}** → ${stripCites(r.mitigation)}`), ``,
     ];
     if (plan.data_citations?.length) {
       lines.push(`## 데이터 출처`, ``, ...plan.data_citations.map(c => `- ${c}`), ``);
@@ -288,13 +289,14 @@ export default function ReportTab({
                     작성일: {today} · 출처: KOICA 공공데이터 · 외교부 재외동포현황(2021) · 세종학당재단(문체부 산하) · 외교부 여행경보 API
                   </p>
                 </div>
-                <button
-                  className="btn-ghost btn-sm"
-                  onClick={handleDownloadMarkdown}
-                  style={{ flexShrink: 0 }}
-                >
-                  ↓ MD 저장
-                </button>
+                <div className="no-print" style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                  <button className="btn-ghost btn-sm" onClick={() => window.print()}>
+                    🖨 인쇄 / PDF
+                  </button>
+                  <button className="btn-ghost btn-sm" onClick={handleDownloadMarkdown}>
+                    ↓ MD 저장
+                  </button>
+                </div>
               </div>
 
               {executiveSummary && (
@@ -437,7 +439,7 @@ export default function ReportTab({
                               </div>
                               <span style={{ fontSize: 12.5, color: "var(--muted)", flexShrink: 0 }}>{r.budget_estimate} · {r.duration}</span>
                             </div>
-                            <p style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 5, lineHeight: 1.55 }}>{r.rationale}</p>
+                            <p style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 5, lineHeight: 1.55 }}><CitedText text={r.rationale} /></p>
                             <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>기대 효과: {r.expected_impact}</p>
                             {r.data_citation && <p style={{ fontSize: 11, color: "var(--faint)", marginTop: 4 }}>출처: {r.data_citation}</p>}
                           </div>
@@ -545,31 +547,32 @@ export default function ReportTab({
                     대상국: {country.name} · 작성일: {today} · Claude AI 자동 생성 초안 (공공데이터 기반)
                   </p>
                 </div>
-                <button
-                  className="btn-ghost btn-sm"
-                  onClick={handleDownloadPlanMarkdown}
-                  style={{ flexShrink: 0 }}
-                >
-                  ↓ MD 저장
-                </button>
+                <div className="no-print" style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                  <button className="btn-ghost btn-sm" onClick={() => window.print()}>
+                    🖨 인쇄 / PDF
+                  </button>
+                  <button className="btn-ghost btn-sm" onClick={handleDownloadPlanMarkdown}>
+                    ↓ MD 저장
+                  </button>
+                </div>
               </div>
 
               <div className="report-body">
                 <div className="report-section">
                   <p className="report-section-title">1. 추진 배경</p>
-                  <p style={{ fontSize: 13.5, color: "var(--ink-soft)", lineHeight: 1.7 }}>{plan.background}</p>
+                  <p style={{ fontSize: 13.5, color: "var(--ink-soft)", lineHeight: 1.7 }}><CitedText text={plan.background} /></p>
                 </div>
 
                 <div className="report-section">
                   <p className="report-section-title">2. 사업 목표</p>
                   <ol style={{ fontSize: 13.5, color: "var(--ink-soft)", lineHeight: 1.7, paddingLeft: 20 }}>
-                    {plan.objectives.map((o, i) => <li key={i}>{o}</li>)}
+                    {plan.objectives.map((o, i) => <li key={i}><CitedText text={o} /></li>)}
                   </ol>
                 </div>
 
                 <div className="report-section">
                   <p className="report-section-title">3. 대상·수혜자</p>
-                  <p style={{ fontSize: 13.5, color: "var(--ink-soft)", lineHeight: 1.7 }}>{plan.target_beneficiaries}</p>
+                  <p style={{ fontSize: 13.5, color: "var(--ink-soft)", lineHeight: 1.7 }}><CitedText text={plan.target_beneficiaries} /></p>
                 </div>
 
                 <div className="report-section">
@@ -578,7 +581,7 @@ export default function ReportTab({
                     {plan.activities.map((a, i) => (
                       <div key={i} style={{ padding: "12px 14px", border: "1px solid var(--line)", borderRadius: "var(--r-md)" }}>
                         <p style={{ fontWeight: 600, fontSize: 13.5, color: "var(--ink)" }}>{i + 1}. {a.name}</p>
-                        <p style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 4, lineHeight: 1.6 }}>{a.description}</p>
+                        <p style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 4, lineHeight: 1.6 }}><CitedText text={a.description} /></p>
                       </div>
                     ))}
                   </div>
@@ -632,8 +635,8 @@ export default function ReportTab({
                         padding: "10px 14px", borderRadius: "var(--r-md)",
                         background: "var(--warning-soft)", fontSize: 13,
                       }}>
-                        <span style={{ fontWeight: 600, color: "var(--warning)" }}>{r.risk}</span>
-                        <span style={{ color: "#92400e" }}> → {r.mitigation}</span>
+                        <span style={{ fontWeight: 600, color: "var(--warning)" }}><CitedText text={r.risk} /></span>
+                        <span style={{ color: "#92400e" }}> → <CitedText text={r.mitigation} /></span>
                       </div>
                     ))}
                   </div>

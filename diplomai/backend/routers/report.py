@@ -171,7 +171,11 @@ async def _generate_plan(country_id: str, meta: dict, base_rec: dict | None) -> 
 ## 출력 형식 — 아래 구조의 JSON 객체만 출력 (마크다운·설명 없이)
 {PLAN_SCHEMA}
 
-주의: activities 3~4건, kpis 3건 이상, risks 2건 이상. 반드시 JSON 객체만 출력."""
+주의: activities 3~4건, kpis 3건 이상, risks 2건 이상. 반드시 JSON 객체만 출력.
+서술형 필드(background, objectives, target_beneficiaries, activities.description, risks)에서
+위 데이터의 수치를 인용할 때는 반드시 [[수치|출처]] 형식으로 감싸세요.
+예: "[[339.9억원|KOICA 국가별 지원실적 CSV·data.go.kr]] 지원 중이나 [[수강생 0명|세종학당재단 통계]]으로..."
+출처는 위 데이터 블록에 명시된 실제 출처만 사용하고, 데이터에 없는 수치는 절대 만들지 마세요."""
 
     client = _get_client()
     try:

@@ -1,6 +1,7 @@
 "use client";
 
 import type { Recommendation } from "@/types";
+import CitedText from "@/components/CitedText";
 
 interface Props {
   recommendations: Recommendation[];
@@ -55,7 +56,7 @@ function RecCard({ rec, onSelectForPlan }: { rec: Recommendation; onSelectForPla
 
       <div>
         <p className="rec-section-label">추천 이유</p>
-        <p className="rec-body">{rec.rationale}</p>
+        <p className="rec-body"><CitedText text={rec.rationale} /></p>
       </div>
       <div>
         <p className="rec-section-label">기대 효과</p>

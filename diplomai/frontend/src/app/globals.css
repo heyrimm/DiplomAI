@@ -1410,3 +1410,38 @@ input:focus, select:focus, textarea:focus {
   .hero-stats-overlay { grid-template-columns: 1fr 1fr; }
   button { width: 100%; }
 }
+
+/* ── 데이터 인용 하이라이트 ─────────────────────────────── */
+mark.cite {
+  background: rgba(29,78,216,.08);
+  color: var(--accent);
+  font-weight: 600;
+  padding: 0 3px;
+  border-radius: 3px;
+  border-bottom: 1px dotted var(--accent);
+  cursor: help;
+}
+
+/* ── 인쇄/PDF: 보고서·계획서 미리보기만 출력 ─────────────── */
+@media print {
+  body * { visibility: hidden; }
+  .report-preview, .report-preview * { visibility: visible; }
+  .report-preview {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .app-shell, .main-wrap, .page-content {
+    overflow: visible !important;
+    height: auto !important;
+    padding: 0 !important;
+  }
+  .side-rail, .app-nav { display: none !important; }
+  .no-print { display: none !important; }
+  mark.cite { border-bottom: none; }
+  .report-section { break-inside: avoid; }
+}
