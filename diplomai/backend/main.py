@@ -1,3 +1,5 @@
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
@@ -8,13 +10,20 @@ from routers import countries, oda, ai, diplomacy, safety, simulation, global_st
 
 app = FastAPI(
     title="DiplomAI API",
-    description="ODA 분석 및 AI 사업 추천 서비스",
-    version="0.1.0",
+    description="공공외교·ODA 사업 설계 AI 코파일럿",
+    version="0.2.0",
 )
+
+# 배포 시 ALLOWED_ORIGINS=https://<vercel-domain> 을 쉼표 구분으로 지정
+_origins = [
+    o.strip()
+    for o in os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+    if o.strip()
+]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

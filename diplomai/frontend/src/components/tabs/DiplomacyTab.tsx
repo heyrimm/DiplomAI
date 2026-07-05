@@ -91,8 +91,8 @@ export default function DiplomacyTab({ data }: Props) {
           )}
         </div>
 
-        <div className="kpi-card">
-          <span className="kpi-label">공공외교 지수</span>
+        <div className="kpi-card" title="세종학당 수강생(35%)·재외동포(45%)·재외공관 수(20%)를 log 정규화해 가중합한 자체 산출 지수 (0~100)">
+          <span className="kpi-label">공공외교 지수 <span style={{ cursor: "help", opacity: .6 }}>ⓘ</span></span>
           {data.kf_index != null ? (
             <>
               <span className="kpi-value">
@@ -108,6 +108,10 @@ export default function DiplomacyTab({ data }: Props) {
           )}
         </div>
       </div>
+
+      <p style={{ fontSize: 11, color: "var(--faint)", marginTop: -6 }}>
+        * 공공외교 지수는 세종학당 수강생(35%)·재외동포(45%)·재외공관 수(20%)를 log 정규화해 가중합한 자체 산출 지수입니다. 산식 상세는 README 참조.
+      </p>
 
       {/* AI 인사이트 */}
       <div className="ai-insight">

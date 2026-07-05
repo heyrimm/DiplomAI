@@ -135,6 +135,50 @@ export interface SejongYearCount {
   count: number;
 }
 
+export interface PlanActivity {
+  name: string;
+  description: string;
+}
+
+export interface PlanBudgetItem {
+  item: string;
+  amount: string;
+}
+
+export interface PlanKpi {
+  indicator: string;
+  target: string;
+}
+
+export interface PlanRisk {
+  risk: string;
+  mitigation: string;
+}
+
+export interface ProjectPlan {
+  title: string;
+  type?: "oda" | "diplomacy";
+  background: string;
+  objectives: string[];
+  target_beneficiaries: string;
+  activities: PlanActivity[];
+  budget_plan: PlanBudgetItem[];
+  duration?: string;
+  kpis: PlanKpi[];
+  risks: PlanRisk[];
+  data_citations?: string[];
+}
+
+export interface ReportGenerateResponse {
+  country_id: string;
+  mode: "summary" | "plan";
+  executive_summary?: string;
+  plan?: ProjectPlan;
+  model?: string;
+  travel_alarm?: string;
+  cached?: boolean;
+}
+
 export interface DiplomacyResponse {
   country_id: string;
   kf_index: number | null;

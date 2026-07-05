@@ -1,0 +1,19 @@
+# Render 배포 설정 — https://render.com 에서 "New > Blueprint"로 이 저장소를 연결하면 자동 인식
+services:
+  - type: web
+    name: diplomai-api
+    runtime: python
+    plan: free
+    rootDir: diplomai/backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false # Render 대시보드에서 직접 입력
+      - key: DATA_GO_KR_API_KEY
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false # 예: https://diplomai.vercel.app
+      - key: REPORT_MODEL
+        value: claude-haiku-4-5-20251001

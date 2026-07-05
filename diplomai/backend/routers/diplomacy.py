@@ -99,8 +99,8 @@ async def get_diplomacy(country_id: str):
         "timeline": [],
         "ai_insight": ai_insight,
         "data_sources": [
-            "세종학당재단 국가별 수강생 현황 (2025)",
+            "세종학당재단(문체부 산하) 국가별 수강생 현황 (2025)",
             "외교부 재외동포현황 (2021)",
-            "data.go.kr 재외공관 정보 API",
+            "외교부 재외공관 정보 API (data.go.kr)",
         ],
     }

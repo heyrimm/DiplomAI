@@ -8,6 +8,8 @@ import type {
   TravelAlarm,
   SafetyNoticesResponse,
   AlarmHistoryResponse,
+  Recommendation,
+  ReportGenerateResponse,
 } from "@/types";
 
 const BASE = "/api";
@@ -57,4 +59,16 @@ export const api = {
 
   getAlarmHistory: (countryId: string) =>
     fetcher<AlarmHistoryResponse>(`/safety/${encodeURIComponent(countryId)}/alarm-history`),
+
+  generateReport: (params: {
+    country_id: string;
+    sections: string[];
+    mode?: "summary" | "plan";
+    base_recommendation?: Recommendation | null;
+  }) =>
+    fetcher<ReportGenerateResponse>("/report/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(params),
+    }),
 };
