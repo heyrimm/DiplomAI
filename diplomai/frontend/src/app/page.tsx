@@ -36,6 +36,7 @@ export default function Home() {
   const [safetyNotices, setSafetyNotices] = useState<SafetyNoticesResponse | null>(null);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [loadingRec, setLoadingRec]   = useState(false);
+  const [planBaseIndex, setPlanBaseIndex] = useState(-1);
   const [activeTab, setActiveTab]     = useState<TabId>("overview");
   const [error, setError]             = useState<string | null>(null);
   const [loading, setLoading]         = useState(false);
@@ -51,6 +52,7 @@ export default function Home() {
     setAlarm(null);
     setSafetyNotices(null);
     setRecommendations([]);
+    setPlanBaseIndex(-1);
     setError(null);
     setLoading(true);
 
@@ -98,6 +100,12 @@ export default function Home() {
     }
   };
 
+  // 추천 카드 → 계획서 생성 원클릭 연결
+  const handleSelectForPlan = (index: number) => {
+    setPlanBaseIndex(index);
+    setActiveTab("report");
+  };
+
   const totalBudget = budget?.total_억원 ?? 0;
   const yoyPct      = budget?.yoy_pct ?? null;
   const riskScore   = country ? Math.round((1 - country.hdi) * 100) : null;
@@ -141,7 +149,14 @@ export default function Home() {
           )}
 
           {/* 국가 미선택 — 글로벌 대시보드 */}
-          {!selectedId && !loading && <GlobalDashboard />}
+          {!selectedId && !loading && (
+            <GlobalDashboard
+              onSelectCountry={(id) => {
+                setSelectedId(id);
+                setActiveTab("diplomacy");
+              }}
+            />
+          )}
 
           {/* 로딩 상태 */}
           {loading && (
@@ -216,6 +231,7 @@ export default function Home() {
                 recommendations={recommendations}
                 loading={loadingRec}
                 onGenerate={handleGenerateRecommendations}
+                onSelectForPlan={handleSelectForPlan}
                 countryName={country.name}
               />
             </>
@@ -235,6 +251,7 @@ export default function Home() {
                     recommendations={recommendations}
                     loading={loadingRec}
                     onGenerate={handleGenerateRecommendations}
+                    onSelectForPlan={handleSelectForPlan}
                     countryName={country.name}
                   />
                 </>
@@ -287,6 +304,7 @@ export default function Home() {
                     gaps={gaps}
                     diplomacy={diplomacy}
                     recommendations={recommendations}
+                    planBaseIndex={planBaseIndex}
                   />
                 </>
               ) : !loading && (

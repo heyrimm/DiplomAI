@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import type {
   Country, OdaBudgetResponse, OdaGapsResponse,
@@ -13,7 +13,15 @@ interface Props {
   gaps: OdaGapsResponse | null;
   diplomacy: DiplomacyResponse | null;
   recommendations: Recommendation[];
+  planBaseIndex?: number;
 }
+
+const PLAN_STEPS = [
+  "공공데이터 수집·통합 — KOICA·KF·세종학당·재외동포",
+  "사각지대·공공외교 공백 분석 — 지역 평균 대비 실계산",
+  "여행경보·리스크 반영 — 외교부 API",
+  "사업계획서 초안 작성 — 배경·목표·활동·예산·KPI·리스크",
+];
 
 const SECTIONS = [
   { id: "overview",  label: "국가 개요" },
@@ -26,7 +34,9 @@ const SECTIONS = [
 const DATA_SOURCES_LINE =
   "KOICA 공공데이터(ODA 실적·사업분야별 통계), 외교부 재외동포현황(2021), 세종학당재단(문체부 산하) 수강생 현황(2025), 외교부 여행경보 API";
 
-export default function ReportTab({ country, budget, gaps, diplomacy, recommendations }: Props) {
+export default function ReportTab({
+  country, budget, gaps, diplomacy, recommendations, planBaseIndex = -1,
+}: Props) {
   const [docMode, setDocMode] = useState<"report" | "plan">("report");
 
   // ── 분석 보고서 상태
@@ -41,6 +51,18 @@ export default function ReportTab({ country, budget, gaps, diplomacy, recommenda
   const [plan, setPlan]                   = useState<ProjectPlan | null>(null);
   const [planGenerating, setPlanGenerating] = useState(false);
   const [planError, setPlanError]         = useState<string | null>(null);
+  const [planStep, setPlanStep]           = useState(0);
+  const stepTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // 추천 카드 "이 사업으로 계획서 생성" → 계획서 모드로 자동 전환 + 기반 사업 선택
+  useEffect(() => {
+    if (planBaseIndex >= 0 && planBaseIndex < recommendations.length) {
+      setDocMode("plan");
+      setPlanBase(planBaseIndex);
+    }
+  }, [planBaseIndex, recommendations.length]);
+
+  useEffect(() => () => { if (stepTimer.current) clearInterval(stepTimer.current); }, []);
 
   const toggle = (id: string) =>
     setSelected((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
@@ -66,6 +88,11 @@ export default function ReportTab({ country, budget, gaps, diplomacy, recommenda
   const handleGeneratePlan = async () => {
     setPlanGenerating(true);
     setPlanError(null);
+    setPlanStep(0);
+    stepTimer.current = setInterval(
+      () => setPlanStep((s) => Math.min(s + 1, PLAN_STEPS.length - 1)),
+      4000,
+    );
     try {
       const data = await api.generateReport({
         country_id: country.id,
@@ -78,6 +105,7 @@ export default function ReportTab({ country, budget, gaps, diplomacy, recommenda
     } catch (e) {
       setPlanError(e instanceof Error ? e.message : "계획서 생성 실패");
     } finally {
+      if (stepTimer.current) { clearInterval(stepTimer.current); stepTimer.current = null; }
       setPlanGenerating(false);
     }
   };
@@ -460,12 +488,41 @@ export default function ReportTab({ country, budget, gaps, diplomacy, recommenda
                   disabled={planGenerating}
                 >
                   {planGenerating ? <span className="spinner white" /> : "✎"}
-                  {planGenerating ? "계획서 작성 중… (약 20초)" : "사업계획서 초안 생성"}
+                  {planGenerating ? "계획서 작성 중…" : "사업계획서 초안 생성"}
                 </button>
                 <span style={{ fontSize: 12.5, color: "var(--muted)" }}>
                   {planBase === -1 ? "국가 데이터 종합 기반" : `"${recommendations[planBase]?.title}" 구체화`}
                 </span>
               </div>
+
+              {/* 단계형 진행 표시 */}
+              {planGenerating && (
+                <div style={{
+                  marginTop: 14, padding: "14px 16px",
+                  background: "var(--surface-2)", borderRadius: "var(--r-md)",
+                  display: "flex", flexDirection: "column", gap: 8,
+                }}>
+                  {PLAN_STEPS.map((step, i) => (
+                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 12.5 }}>
+                      {i < planStep ? (
+                        <span style={{ color: "var(--success)", fontWeight: 700, width: 16, textAlign: "center", flexShrink: 0 }}>✓</span>
+                      ) : i === planStep ? (
+                        <span className="spinner" style={{ width: 12, height: 12, borderWidth: 2, flexShrink: 0, margin: "0 2px" }} />
+                      ) : (
+                        <span style={{ color: "var(--faint)", width: 16, textAlign: "center", flexShrink: 0 }}>○</span>
+                      )}
+                      <span style={{
+                        color: i < planStep ? "var(--muted)" : i === planStep ? "var(--ink)" : "var(--faint)",
+                        fontWeight: i === planStep ? 600 : 400,
+                        textDecoration: i < planStep ? "line-through" : "none",
+                      }}>
+                        {step}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {planError && (
                 <div className="error-banner" style={{ marginTop: 10 }}>
                   <span>⚠</span><span>{planError}</span>

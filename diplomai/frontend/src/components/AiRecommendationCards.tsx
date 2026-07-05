@@ -6,6 +6,7 @@ interface Props {
   recommendations: Recommendation[];
   loading: boolean;
   onGenerate: () => void;
+  onSelectForPlan?: (index: number) => void;
   countryName: string;
 }
 
@@ -21,7 +22,7 @@ const PRIORITY_LABEL: Record<string, string> = {
   low:    "우선순위 낮음",
 };
 
-function RecCard({ rec }: { rec: Recommendation }) {
+function RecCard({ rec, onSelectForPlan }: { rec: Recommendation; onSelectForPlan?: () => void }) {
   const tagCls = PRIORITY_TAG[rec.priority] ?? "";
   const isDiplomacy = rec.type === "diplomacy";
 
@@ -65,12 +66,21 @@ function RecCard({ rec }: { rec: Recommendation }) {
           출처: {rec.data_citation}
         </p>
       )}
+      {onSelectForPlan && (
+        <button
+          className="btn-ghost btn-sm"
+          onClick={onSelectForPlan}
+          style={{ marginTop: 10, alignSelf: "flex-start" }}
+        >
+          ✎ 이 사업으로 계획서 생성 →
+        </button>
+      )}
     </div>
   );
 }
 
 export default function AiRecommendationCards({
-  recommendations, loading, onGenerate, countryName,
+  recommendations, loading, onGenerate, onSelectForPlan, countryName,
 }: Props) {
   return (
     <div className="ai-section">
@@ -110,7 +120,11 @@ export default function AiRecommendationCards({
       {!loading && recommendations.length > 0 && (
         <div className="rec-grid">
           {recommendations.map((rec, i) => (
-            <RecCard key={i} rec={rec} />
+            <RecCard
+              key={i}
+              rec={rec}
+              onSelectForPlan={onSelectForPlan ? () => onSelectForPlan(i) : undefined}
+            />
           ))}
         </div>
       )}

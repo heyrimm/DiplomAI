@@ -16,6 +16,26 @@ interface AlarmLevel {
 }
 interface AlarmOverview { levels: AlarmLevel[]; total_countries: number; source: string; }
 
+interface GapEntry {
+  country_id: string;
+  region: string;
+  oda_budget: number;
+  oda_year: number | null;
+  kf_total: number;
+  kf_last_year: number | null;
+  reason: string;
+}
+interface GapsResponse {
+  gaps: GapEntry[];
+  total_detected: number;
+  criteria: string;
+  sources: string[];
+}
+
+interface Props {
+  onSelectCountry?: (id: string) => void;
+}
+
 const LEVEL_STYLE: Record<string, { bg: string; text: string; border: string; dot: string }> = {
   "4": { bg: "rgba(185,28,28,.07)",  text: "#b91c1c", border: "rgba(185,28,28,.2)",  dot: "#b91c1c" },
   "3": { bg: "rgba(180,83,9,.07)",   text: "#b45309", border: "rgba(180,83,9,.2)",   dot: "#f59e0b" },
@@ -73,9 +93,10 @@ function RankList({
   );
 }
 
-export default function GlobalDashboard() {
+export default function GlobalDashboard({ onSelectCountry }: Props) {
   const [summary, setSummary]      = useState<GlobalSummary | null>(null);
   const [alarm, setAlarm]          = useState<AlarmOverview | null>(null);
+  const [gapsData, setGapsData]    = useState<GapsResponse | null>(null);
   const [showAllLevel, setShowAll] = useState<string | null>(null);
 
   useEffect(() => {
@@ -86,6 +107,10 @@ export default function GlobalDashboard() {
     fetch("/api/safety/overview")
       .then(r => r.json())
       .then(d => { if (d?.levels) setAlarm(d); })
+      .catch(() => {});
+    fetch("/api/global/gaps")
+      .then(r => r.json())
+      .then(d => { if (d?.gaps?.length) setGapsData(d); })
       .catch(() => {});
   }, []);
 
@@ -142,6 +167,65 @@ export default function GlobalDashboard() {
           </>
         ))}
       </div>
+
+      {/* ── 공공외교 공백 국가 (핵심 차별 기능) ── */}
+      {gapsData && (
+        <div style={{
+          background: "var(--surface)", border: "1px solid rgba(180,83,9,.25)",
+          borderRadius: "var(--r-xl)", padding: "22px 24px",
+          boxShadow: "var(--shadow-sm)",
+        }}>
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 6 }}>
+            <div>
+              <p style={{ fontSize: 13.5, fontWeight: 700, color: "var(--ink)" }}>
+                ⚠ 공공외교 공백 국가 <span style={{ color: "#b45309" }}>{gapsData.total_detected}개국 감지</span>
+              </p>
+              <p style={{ fontSize: 11, color: "var(--faint)", marginTop: 3 }}>
+                {gapsData.criteria} — KOICA·KF 데이터 교차 분석
+              </p>
+            </div>
+            <span style={{
+              fontSize: 10.5, fontWeight: 600, color: "#b45309",
+              background: "rgba(180,83,9,.08)", padding: "2px 8px", borderRadius: 99,
+              letterSpacing: ".04em", flexShrink: 0,
+            }}>KOICA × KF</span>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 12 }}>
+            {gapsData.gaps.map((g) => (
+              <button
+                key={g.country_id}
+                onClick={() => onSelectCountry?.(g.country_id)}
+                style={{
+                  textAlign: "left", cursor: "pointer",
+                  padding: "11px 14px", borderRadius: "var(--r-md)",
+                  border: "1px solid rgba(180,83,9,.18)",
+                  background: "rgba(180,83,9,.04)",
+                  transition: "background .15s ease",
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
+                  <span style={{ fontSize: 13.5, fontWeight: 700, color: "var(--ink)" }}>
+                    {g.country_id}
+                    <span style={{ fontSize: 11, fontWeight: 400, color: "var(--faint)", marginLeft: 6 }}>{g.region}</span>
+                  </span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: "#b45309", flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>
+                    ODA 연 {Math.round(g.oda_budget)}억
+                  </span>
+                </div>
+                <p style={{ fontSize: 11.5, color: "var(--ink-soft)", marginTop: 4 }}>
+                  {g.kf_total === 0
+                    ? "KF 공공외교 사업 이력 없음"
+                    : `KF 사업 ${g.kf_last_year}년 이후 중단 (누적 ${g.kf_total}건)`}
+                  <span style={{ color: "var(--accent)", marginLeft: 6 }}>분석 보기 →</span>
+                </p>
+              </button>
+            ))}
+          </div>
+          <p style={{ fontSize: 10.5, color: "var(--faint)", marginTop: 10 }}>
+            출처: {gapsData.sources.join(" · ")}
+          </p>
+        </div>
+      )}
 
       {/* ── 랭킹 2열 ── */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>

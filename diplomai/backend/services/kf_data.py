@@ -145,3 +145,33 @@ def get_africa_exchanges(ko_name: str) -> dict | None:
         return None
     recent = sorted(cases, key=lambda c: c["year"], reverse=True)[:5]
     return {"total": len(cases), "cases": recent}
+
+
+# ── 공공외교 공백 판정 ──────────────────────────────────────────
+
+GAP_MIN_ODA = 50      # 연 지원액 기준 (억원)
+GAP_STALE_YEAR = 2018  # 이 해 이전에 KF 사업이 끊겼으면 '중단'으로 판정
+
+
+def compute_kf_gap(ko_name: str, oda_budget: float) -> dict | None:
+    """ODA 지원은 활발한데 KF 공공외교 사업이 없거나 오래 중단된 경우 감지"""
+    if oda_budget < GAP_MIN_ODA:
+        return None
+    proj = get_kf_projects(ko_name)
+    total = proj["total"] if proj else 0
+    last_year = proj["last_year"] if proj else None
+    if total == 0:
+        return {
+            "is_gap": True,
+            "kf_total": 0,
+            "kf_last_year": None,
+            "reason": f"KOICA ODA 연 {oda_budget}억원 지원 국가이나 KF 공공외교 사업 이력이 없습니다. 개발협력 대비 공공외교 채널이 공백 상태입니다.",
+        }
+    if last_year is not None and last_year < GAP_STALE_YEAR:
+        return {
+            "is_gap": True,
+            "kf_total": total,
+            "kf_last_year": last_year,
+            "reason": f"KOICA ODA 연 {oda_budget}억원 지원 국가이나 KF 공공외교 사업이 {last_year}년 이후 중단된 상태입니다.",
+        }
+    return None

@@ -7,7 +7,12 @@ from services.public_diplomacy import (
     get_embassy_count,
     compute_diplomacy_index,
 )
-from services.kf_data import get_kf_projects, get_korean_studies, get_africa_exchanges
+from services.kf_data import (
+    get_kf_projects,
+    get_korean_studies,
+    get_africa_exchanges,
+    compute_kf_gap,
+)
 from services.koica_csv import get_country_latest
 
 router = APIRouter(prefix="/api/diplomacy", tags=["diplomacy"])
@@ -76,22 +81,9 @@ async def get_diplomacy(country_id: str):
         trends.append({"label": "세종학당 수강생 증감", "value": f"{sign}{learners_yoy}%"})
 
     # 공공외교 공백 신호: ODA 지원은 활발한데 KF 공공외교 사업이 없거나 오래 끊긴 경우
-    kf_gap = None
     latest_oda = get_country_latest(country_id)
     oda_budget = latest_oda["budget_억원"] if latest_oda else 0
-    if oda_budget >= 50:
-        kf_total = kf_projects["total"] if kf_projects else 0
-        kf_last = kf_projects["last_year"] if kf_projects else None
-        if kf_total == 0:
-            kf_gap = {
-                "is_gap": True,
-                "reason": f"KOICA ODA 연 {oda_budget}억원 지원 국가이나 KF 공공외교 사업 이력이 없습니다. 개발협력 대비 공공외교 채널이 공백 상태입니다.",
-            }
-        elif kf_last is not None and kf_last < 2018:
-            kf_gap = {
-                "is_gap": True,
-                "reason": f"KOICA ODA 연 {oda_budget}억원 지원 국가이나 KF 공공외교 사업이 {kf_last}년 이후 중단된 상태입니다.",
-            }
+    kf_gap = compute_kf_gap(country_id, oda_budget)
 
     # AI 인사이트 (규칙 기반)
     parts = []

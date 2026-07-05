@@ -1,8 +1,12 @@
 from fastapi import APIRouter
-from services.koica_csv import get_top_countries_with_totals, get_all_countries_ranked
+from data.country_meta import COUNTRY_META
+from services.koica_csv import get_top_countries_with_totals, get_all_countries_ranked, get_country_latest
 from services.public_diplomacy import _sejong_all
+from services.kf_data import compute_kf_gap
 
 router = APIRouter(prefix="/api/global", tags=["global"])
+
+_GAPS_CACHE: dict | None = None
 
 
 @router.get("/summary")
@@ -37,3 +41,39 @@ def global_summary():
             "sejong": "세종학당재단 국가별 수강생 현황 2025",
         },
     }
+
+
+@router.get("/gaps")
+def global_gaps():
+    """전 국가 공공외교 공백 스캔 — ODA 지원 활발 + KF 사업 부재/중단 국가 목록 (ODA 규모순)"""
+    global _GAPS_CACHE
+    if _GAPS_CACHE is not None:
+        return _GAPS_CACHE
+
+    items = []
+    for ko_name in COUNTRY_META:
+        latest = get_country_latest(ko_name)
+        oda_budget = latest["budget_억원"] if latest else 0
+        gap = compute_kf_gap(ko_name, oda_budget)
+        if gap:
+            items.append({
+                "country_id": ko_name,
+                "region": COUNTRY_META[ko_name].get("region", ""),
+                "oda_budget": oda_budget,
+                "oda_year": latest.get("year") if latest else None,
+                "kf_total": gap["kf_total"],
+                "kf_last_year": gap["kf_last_year"],
+                "reason": gap["reason"],
+            })
+
+    items.sort(key=lambda x: x["oda_budget"], reverse=True)
+    _GAPS_CACHE = {
+        "gaps": items[:10],
+        "total_detected": len(items),
+        "criteria": "KOICA ODA 연 50억원 이상 지원 국가 중 KF 공공외교 사업 이력이 없거나 2018년 이전 중단",
+        "sources": [
+            "KOICA 국가별 지원실적 (data.go.kr)",
+            "KF 융합 공공외교·ODA 사업정보 (data.go.kr)",
+        ],
+    }
+    return _GAPS_CACHE
