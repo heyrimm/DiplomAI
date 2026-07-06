@@ -25,6 +25,7 @@ import ReportTab from "@/components/tabs/ReportTab";
 import AiRecommendationCards from "@/components/AiRecommendationCards";
 import CountryLanding from "@/components/CountryLanding";
 import GlobalDashboard from "@/components/GlobalDashboard";
+import BusinessEvaluator from "@/components/BusinessEvaluator";
 import { ChevronLeft, ChevronRight, HelpCircle, Bell, Settings } from "@/components/icons";
 
 const TAB_LABELS: Record<TabId, string> = {
@@ -32,6 +33,7 @@ const TAB_LABELS: Record<TabId, string> = {
   overview:   "종합 개요",
   oda:        "ODA 분석",
   diplomacy:  "공공외교",
+  evaluate:   "사업 진단",
   simulation: "시뮬레이션",
   report:     "종합 보고서",
 };
@@ -130,6 +132,7 @@ export default function Home() {
         activeNav={activeTab}
         onCountryChange={handleCountrySelect}
         onNavChange={(id) => setActiveTab(id as TabId)}
+        onHome={() => { setSelectedId(null); setActiveTab("overview"); }}
       />
 
       {/* ── Main area ── */}
@@ -313,6 +316,23 @@ export default function Home() {
                     <span className="tab-page-sub">세종학당재단 · 외교부 재외동포현황 · data.go.kr 재외공관 API</span>
                   </div>
                   <DiplomacyTab data={diplomacy} />
+                </>
+              ) : !loading && (
+                <div className="empty-state">국가를 먼저 선택하세요</div>
+              )}
+            </div>
+          )}
+
+          {/* ── 사업 진단 탭 ── */}
+          {activeTab === "evaluate" && (
+            <div className="content-area">
+              {country ? (
+                <>
+                  <div className="tab-page-header">
+                    <h2 className="tab-page-title">사업 타당성 진단 — {country.name}</h2>
+                    <span className="tab-page-sub">내 사업 아이템을 공공데이터로 평가 · 가능성 점수 산출</span>
+                  </div>
+                  <BusinessEvaluator country={country} />
                 </>
               ) : !loading && (
                 <div className="empty-state">국가를 먼저 선택하세요</div>

@@ -130,10 +130,20 @@ h1, h2, h3, h4, p { margin: 0; }
 .sb-brand {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 9px;
-  padding: 2px 6px 2px 2px;
+  width: 100%;
+  min-height: 0;
+  padding: 6px;
   margin-bottom: 10px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: transparent;
+  box-shadow: none;
+  cursor: pointer;
+  transition: background .15s;
 }
+.sb-brand:hover:not(:disabled) { background: var(--surface-2); }
 .sb-brand-icon {
   display: flex;
   align-items: center;
@@ -1757,6 +1767,158 @@ input:focus, select:focus, textarea:focus {
 .welcome-desc  { font-size: 14.5px; color: var(--muted); line-height: 1.7; margin: 0; max-width: 380px; }
 .welcome-desc strong { color: var(--ink-soft); font-weight: 600; }
 .welcome-hint  { font-size: 13px; color: var(--faint); margin: 4px 0 0; }
+
+/* ============================================================
+   Business Evaluator (사업 타당성 진단)
+   ============================================================ */
+
+.eval-input {
+  width: 100%;
+  min-height: 78px;
+  resize: vertical;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r);
+  padding: 11px 13px;
+  font-size: 14px;
+  line-height: 1.6;
+  font-family: inherit;
+  color: var(--ink);
+  background: var(--surface);
+}
+
+.eval-examples {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  margin-top: 10px;
+}
+.eval-examples-label { font-size: 11.5px; font-weight: 600; color: var(--faint); }
+
+/* PDF 첨부 */
+.eval-pdf-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--line);
+}
+.eval-pdf-hint { font-size: 11.5px; color: var(--faint); line-height: 1.4; }
+.eval-pdf-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px 6px 12px;
+  border: 1px solid var(--accent-ring);
+  border-radius: var(--r-md);
+  background: var(--accent-soft);
+}
+.eval-pdf-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--accent);
+  max-width: 320px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.eval-pdf-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  min-height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(29,78,216,.14);
+  color: var(--accent);
+  font-size: 11px;
+  box-shadow: none;
+  flex-shrink: 0;
+}
+.eval-pdf-remove:hover:not(:disabled) { background: rgba(29,78,216,.24); }
+
+.eval-target {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.eval-example-chip {
+  min-height: 26px;
+  padding: 3px 11px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+  box-shadow: none;
+}
+.eval-example-chip:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+
+/* 점수 요약 */
+.eval-score-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding-bottom: 18px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+}
+.eval-score-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 104px;
+  height: 104px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 4px solid;
+}
+.eval-score-badge.grade-good { border-color: var(--success); background: var(--success-soft); color: var(--success); }
+.eval-score-badge.grade-mid  { border-color: var(--warning); background: var(--warning-soft); color: var(--warning); }
+.eval-score-badge.grade-low  { border-color: var(--danger);  background: var(--danger-soft);  color: var(--danger); }
+.eval-score-num  { font-size: 34px; font-weight: 800; line-height: 1; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.eval-score-unit { font-size: 12px; font-weight: 600; opacity: .7; margin-top: 2px; }
+
+.eval-score-meta { display: flex; flex-direction: column; align-items: flex-start; gap: 7px; min-width: 0; }
+.eval-sector-tag { font-size: 12.5px; color: var(--muted); font-weight: 500; }
+.eval-summary { font-size: 15px; font-weight: 600; color: var(--ink); line-height: 1.5; letter-spacing: -.01em; }
+
+/* 항목별 */
+.eval-components { display: flex; flex-direction: column; gap: 16px; }
+.eval-comp-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
+.eval-comp-label { font-size: 13.5px; font-weight: 600; color: var(--ink); }
+.eval-comp-score { font-size: 13.5px; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
+.eval-comp-max { font-size: 11.5px; font-weight: 400; color: var(--faint); }
+.eval-comp-note { font-size: 12px; color: var(--muted); line-height: 1.55; margin-top: 6px; }
+
+/* 리스트 */
+.eval-list { display: flex; flex-direction: column; gap: 9px; margin: 0; padding: 0; list-style: none; }
+.eval-list-item {
+  position: relative;
+  padding-left: 16px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+.eval-list-item::before { content: "·"; position: absolute; left: 4px; color: var(--faint); font-weight: 700; }
+.eval-list-item.pos::before { content: "▲"; color: var(--success); font-size: 8px; top: 3px; }
+.eval-list-item.neg::before { content: "▼"; color: var(--warning); font-size: 8px; top: 3px; }
+
+.eval-adjust { display: flex; flex-direction: column; gap: 9px; margin: 0; padding-left: 20px; }
+.eval-adjust-item { font-size: 13px; line-height: 1.55; color: var(--ink-soft); }
+
+.eval-disclaimer { font-size: 11.5px; color: var(--faint); line-height: 1.6; padding: 2px 2px 0; }
 
 /* ============================================================
    Responsive

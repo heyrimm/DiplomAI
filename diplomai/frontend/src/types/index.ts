@@ -64,6 +64,30 @@ export interface RecommendationsResponse {
   recommendations: Recommendation[];
 }
 
+export interface EvalComponent {
+  label: string;
+  score: number;
+  max: number;
+  note: string;
+}
+
+export interface EvaluateResult {
+  country_id: string;
+  item: string;
+  source?: "text" | "pdf";
+  sector: string;
+  score: number;
+  grade: string;
+  components: EvalComponent[];
+  summary: string;
+  strengths: string[];
+  risks: string[];
+  reasoning: string;
+  similar_precedents: string[];
+  adjustments: string[];
+  cached?: boolean;
+}
+
 export interface PeerEntry {
   country: string;
   code: string;

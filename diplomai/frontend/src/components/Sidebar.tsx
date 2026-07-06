@@ -2,7 +2,7 @@
 
 import { flagSrc } from "@/lib/flags";
 import {
-  ChevronDown, LayoutDashboard, BarChart, Globe, Sliders, FileText, TrendingUp,
+  ChevronDown, LayoutDashboard, BarChart, Globe, Sliders, FileText, TrendingUp, Target,
 } from "@/components/icons";
 import type { ComponentType, SVGProps } from "react";
 import type { Country } from "@/types";
@@ -14,6 +14,7 @@ const NAV_ITEMS: { id: TabId; Icon: IconType; label: string }[] = [
   { id: "overview",   Icon: LayoutDashboard, label: "종합 개요" },
   { id: "oda",        Icon: BarChart,        label: "ODA 분석" },
   { id: "diplomacy",  Icon: Globe,           label: "공공외교" },
+  { id: "evaluate",   Icon: Target,          label: "사업 진단" },
   { id: "simulation", Icon: Sliders,         label: "시뮬레이션" },
   { id: "report",     Icon: FileText,        label: "종합 보고서" },
 ];
@@ -24,16 +25,17 @@ interface Props {
   activeNav: string;
   onCountryChange: (id: string) => void;
   onNavChange: (id: string) => void;
+  onHome: () => void;
 }
 
-export default function Sidebar({ selectedId, activeNav, onNavChange }: Props) {
+export default function Sidebar({ selectedId, activeNav, onNavChange, onHome }: Props) {
   return (
     <aside className="side-rail">
-      {/* Brand */}
-      <div className="sb-brand">
+      {/* Brand → 국가 선택 화면으로 */}
+      <button className="sb-brand" onClick={onHome} title="국가 선택 화면으로">
         <span className="sb-brand-icon">D</span>
         <span className="sb-brand-name">DiplomAI</span>
-      </div>
+      </button>
 
       {/* Global overview */}
       <div className="sb-section-label">전체</div>

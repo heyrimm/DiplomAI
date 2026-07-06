@@ -1,6 +1,6 @@
 "use client";
 
-export type TabId = "global" | "overview" | "oda" | "diplomacy" | "simulation" | "report";
+export type TabId = "global" | "overview" | "oda" | "diplomacy" | "evaluate" | "simulation" | "report";
 
 const TABS: { id: TabId; label: string }[] = [
   { id: "overview",   label: "종합 개요" },
