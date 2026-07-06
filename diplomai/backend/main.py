@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from routers import countries, oda, ai, diplomacy, safety, simulation, global_stats, report
+from security import SecurityMiddleware
 
 app = FastAPI(
     title="DiplomAI API",
@@ -25,9 +26,11 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
 )
+
+app.add_middleware(SecurityMiddleware)
 
 app.include_router(countries.router)
 app.include_router(oda.router)
