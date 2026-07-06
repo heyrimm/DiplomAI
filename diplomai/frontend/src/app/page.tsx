@@ -16,14 +16,25 @@ import type {
 import Sidebar from "@/components/Sidebar";
 import CountrySearch from "@/components/CountrySearch";
 import CountryHeader from "@/components/CountryHeader";
-import TabNav, { type TabId } from "@/components/TabNav";
+import { type TabId } from "@/components/TabNav";
 import OverviewTab from "@/components/tabs/OverviewTab";
 import OdaTab from "@/components/tabs/OdaTab";
 import DiplomacyTab from "@/components/tabs/DiplomacyTab";
 import SimulationTab from "@/components/tabs/SimulationTab";
 import ReportTab from "@/components/tabs/ReportTab";
 import AiRecommendationCards from "@/components/AiRecommendationCards";
+import CountryLanding from "@/components/CountryLanding";
 import GlobalDashboard from "@/components/GlobalDashboard";
+import { ChevronLeft, ChevronRight, HelpCircle, Bell, Settings } from "@/components/icons";
+
+const TAB_LABELS: Record<TabId, string> = {
+  global:     "글로벌 현황",
+  overview:   "종합 개요",
+  oda:        "ODA 분석",
+  diplomacy:  "공공외교",
+  simulation: "시뮬레이션",
+  report:     "종합 보고서",
+};
 
 export default function Home() {
   const [selectedId, setSelectedId]   = useState<string | null>(null);
@@ -126,15 +137,35 @@ export default function Home() {
 
         {/* Sticky top nav */}
         <header className="app-nav">
-          <div className="brand-mark" onClick={() => setSelectedId(null)} style={{ cursor: "pointer" }}>
-            <span className="brand-icon">D</span>
-            DiplomAI
+          {/* Breadcrumb */}
+          <div className="breadcrumb">
+            <div className="crumb-btns">
+              <button className="crumb-btn" aria-label="뒤로"><ChevronLeft size={15} /></button>
+              <button className="crumb-btn" aria-label="앞으로"><ChevronRight size={15} /></button>
+            </div>
+            <div className="crumb-trail">
+              <button
+                className="crumb-muted crumb-home"
+                onClick={() => setSelectedId(null)}
+                title="첫 화면으로"
+              >
+                분석
+              </button>
+              <span className="crumb-sep">/</span>
+              <span className="crumb-current">{TAB_LABELS[activeTab]}</span>
+            </div>
           </div>
 
           {/* 국가 검색창 */}
           <CountrySearch selected={country} onSelect={handleCountrySelect} />
 
-          <TabNav active={activeTab} onChange={setActiveTab} />
+          {/* Action icons */}
+          <div className="nav-actions">
+            <button className="nav-icon-btn" aria-label="도움말"><HelpCircle size={17} /></button>
+            <button className="nav-icon-btn" aria-label="알림"><Bell size={17} /></button>
+            <button className="nav-icon-btn" aria-label="설정"><Settings size={17} /></button>
+            <span className="nav-avatar">외</span>
+          </div>
         </header>
 
         {/* Scrollable content */}
@@ -148,18 +179,29 @@ export default function Home() {
             </div>
           )}
 
-          {/* 국가 미선택 — 글로벌 대시보드 */}
-          {!selectedId && !loading && (
-            <GlobalDashboard
-              onSelectCountry={(id) => {
-                setSelectedId(id);
-                setActiveTab("diplomacy");
-              }}
-            />
+          {/* ── 글로벌 현황 (전세계 대시보드) ── */}
+          {activeTab === "global" && (
+            <div className="content-area">
+              <div className="tab-page-header">
+                <h2 className="tab-page-title">글로벌 현황</h2>
+                <span className="tab-page-sub">전세계 KOICA·세종학당·여행경보 종합</span>
+              </div>
+              <GlobalDashboard
+                onSelectCountry={(id) => {
+                  setSelectedId(id);
+                  setActiveTab("overview");
+                }}
+              />
+            </div>
+          )}
+
+          {/* 국가 미선택 → 대륙별 국가 선택 화면 (최상위 진입 화면) */}
+          {activeTab !== "global" && !selectedId && !loading && (
+            <CountryLanding onSelect={handleCountrySelect} />
           )}
 
           {/* 로딩 상태 */}
-          {loading && (
+          {loading && activeTab !== "global" && (
             <div className="loading-state">
               <span className="spinner" />
               <span>{selectedId} 데이터 로딩 중…</span>
