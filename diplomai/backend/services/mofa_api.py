@@ -5,7 +5,10 @@
 출처: 공공데이터포털 (data.go.kr) — 외교부 제공
 """
 
+import html
 import os
+import re
+
 import httpx
 
 BASE_URL = "http://apis.data.go.kr"
@@ -215,7 +218,7 @@ async def fetch_safety_notices(country_id: str, limit: int = 3) -> list[dict] | 
             if item_eng.lower() != eng_name.lower():
                 continue
             notices.append({
-                "title": item.get("title") or item.get("notice_title") or "",
+                "title": _clean_html(item.get("title") or item.get("notice_title") or ""),
                 "date":  item.get("written_dt") or item.get("writtenDt") or "",
                 "url":   item.get("origin_url") or item.get("originUrl") or "",
             })
@@ -262,6 +265,28 @@ async def _fetch_all_history() -> list[dict]:
         return []
 
 
+def _clean_html(text: str) -> str:
+    """외교부 원문의 HTML 태그·엔티티(&nbsp; 등) 제거 후 공백 정리."""
+    text = re.sub(r"<[^>]+>", " ", text)
+    text = html.unescape(text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _cut_sentence(text: str, limit: int = 200) -> str:
+    """limit 초과 시 마지막 문장 끝에서 잘라 말줄임 없이 끝맺음."""
+    if len(text) <= limit:
+        return text
+    cut = text[:limit]
+    end = cut.rfind("다.")
+    if end >= 0:
+        return cut[: end + 2]
+    # "다."가 없으면 공백/끝이 뒤따르는 마침표(날짜 "6.29." 등 제외)에서 절단
+    ends = [m.end() for m in re.finditer(r"(?<!\d)\.(?=\s|$)", cut)]
+    if ends and ends[-1] >= 50:
+        return cut[: ends[-1]]
+    return cut
+
+
 async def fetch_alarm_history(country_id: str, limit: int = 5) -> list[dict] | None:
     """국가별 여행경보 조정 이력 최신 N건."""
     eng_name = COUNTRY_ENG_MAP.get(country_id)
@@ -276,9 +301,9 @@ async def fetch_alarm_history(country_id: str, limit: int = 5) -> list[dict] | N
         if item_eng.lower() != eng_name.lower():
             continue
         history.append({
-            "title":    item.get("title") or "",
+            "title":    _clean_html(item.get("title") or ""),
             "date":     item.get("wrt_dt") or "",
-            "summary":  (item.get("txt_origin_cn") or "")[:200],
+            "summary":  _cut_sentence(_clean_html(item.get("txt_origin_cn") or "")),
             "file_url": item.get("file_download_url") or "",
         })
         if len(history) >= limit:
