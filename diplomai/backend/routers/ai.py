@@ -1,3 +1,4 @@
+import asyncio
 import json
 import math
 import os
@@ -16,6 +17,7 @@ from services.koica_indicators import (
     get_regional_sector_proportions,
     get_sdg_goals,
 )
+from services.kotra_api import fetch_nation_brief, fetch_trade_news
 
 router = APIRouter(prefix="/api/ai", tags=["ai"])
 
@@ -396,4 +398,168 @@ async def evaluate_item(req: EvaluateRequest):
         "adjustments": analysis.get("adjustments", []),
     }
     _EVAL_CACHE[cache_key] = {"data": result, "ts": time.time()}
+    return result
+
+
+# ══════════════════════════════════════════════════════════════
+#  진출 절차 가이드 — 법인 설립·인허가·통관·현지 관례
+# ══════════════════════════════════════════════════════════════
+
+_GUIDE_CACHE: dict[str, dict] = {}
+
+
+class EntryGuideRequest(BaseModel):
+    country_id: str
+    item: str
+    sector: str | None = None
+
+
+def _build_guide_prompt(
+    country_id: str, meta: dict, item: str, sector: str | None,
+    kotra_nation: dict | None = None, kotra_news: list[dict] | None = None,
+) -> str:
+    # KOTRA 근거 자료 블록 (있으면 프롬프트에 주입)
+    evidence = ""
+    if kotra_nation:
+        blocks = []
+        for section, text in kotra_nation["sections"].items():
+            blocks.append(f"### {section}\n{text}")
+        if kotra_nation.get("offices"):
+            office_lines = "\n".join(
+                f"- {o['name']}: {o['contact']}" for o in kotra_nation["offices"]
+            )
+            blocks.append(f"### KOTRA 무역관\n{office_lines}")
+        evidence += "\n\n## 근거 자료 A — KOTRA 국가정보 (공공데이터포털)\n" + "\n\n".join(blocks)
+    if kotra_news:
+        news_lines = "\n".join(
+            f"- [{n['date']}|{n['category']}] {n['title']}"
+            + (f" — {n['summary']}" if n['summary'] else "")
+            for n in kotra_news
+        )
+        evidence += f"\n\n## 근거 자료 B — KOTRA 해외시장뉴스 최신 통상·규제 동향\n{news_lines}"
+
+    evidence_rule = (
+        "- 위 근거 자료 A·B에 기반해 작성하고, 자료에 있는 사실은 그대로 활용하세요. "
+        "자료에 없는 세부 수치(관세율, 수수료 등)는 지어내지 말고 \"현지 확인 필요\"로 표시하세요.\n"
+        if evidence else
+        "- 확실하지 않은 세부 수치(관세율, 정확한 수수료)는 지어내지 말고 \"현지 확인 필요\"로 표시하세요.\n"
+    )
+
+    return f"""당신은 국제개발협력·공공외교 사업의 현지 실행 실무 전문가이자 KOTRA 현지 자문가입니다.
+아래 사업을 대상국 현지에서 실제로 실행하려는 한국 기관(지자체·대학·NGO 등)을 위해,
+현지 실행 준비 절차 가이드를 작성하세요. 무역 수출이 아니라 사업의 현지 정착·운영 준비 관점입니다.
+
+## 사업 아이템
+"{item}"{f" (분야: {sector})" if sector else ""}
+
+## 대상 국가: {country_id} ({meta.get('name_en', '')})
+- 지역 {meta.get('region', '')} | 소득 {meta.get('income_level', '')}
+- 1인당 GDP USD {meta.get('gdp_per_capita', 0):,} | 인구 {meta.get('population', 0):,}명{evidence}
+
+## 출력 형식 (JSON 객체만, 마크다운 없이)
+{{
+  "overview": "이 사업의 현지 실행 준비 경로 개요 (2문장 이내, '~함/~됨' 개조식)",
+  "difficulty": {{
+    "level": "현지 실행 난이도 — 낮음/보통/높음 중 택1",
+    "reason": "난이도 판단 근거 한 문장 (60자 이내)"
+  }},
+  "key_risks": ["이 사업의 핵심 리스크 정확히 3개, 각 60자 이내"],
+  "first_actions": ["지금 바로 착수할 첫 액션 정확히 3개, 각 60자 이내 (예: KOTRA 양곤무역관에 현지 여건 문의)"],
+  "total_duration": "현지 실행 준비 완료까지 예상 소요 기간 (예: 6~9개월)",
+  "must_check": ["반드시 확인·접촉할 기관 2~4개 (기관명만 간결하게)"],
+  "steps": [
+    {{
+      "order": 1,
+      "title": "단계명 (15자 이내)",
+      "description": "해야 할 일과 유의점 (100자 이내, 완결 문장)",
+      "agency": "담당·접촉 기관 (현지 정부부처/투자청/KOTRA 무역관 등)",
+      "duration": "통상 소요 기간 (예: 2~4주)"
+    }}
+  ],
+  "customs": ["물자·장비 통관 및 수입 규제 유의점 (관세, 필수 인증, 금지·제한 품목 등) 2~4개, 각 80자 이내"],
+  "legal": ["핵심 법률·규제 (기관 등록, 외국인 투자, 현지 채용·노무, 토지, 외환 등) 2~4개, 각 80자 이내"],
+  "practices": ["현지 협업·비즈니스 관례·문화 유의점 2~4개, 각 80자 이내"],
+  "resources": ["실행 전 반드시 확인할 공식 채널 2~4개 (예: KOTRA 현지 무역관, 주재 한국대사관, 현지 투자청)"]
+}}
+
+규칙:
+- steps는 현지 여건 조사 → 파트너·거점 확보 → 기관/법인 등록 → 인허가 → 물자 통관·물류 → 운영 개시 순으로 5~7단계.
+- 이 사업 아이템과 무관한 일반론은 빼고, 아이템 특성(장비 수입 여부, 인력 파견 여부 등)에 맞추세요.
+{evidence_rule}- 모든 문장은 중간에 끊지 말고 완결하세요. 반드시 JSON 객체만 출력하세요."""
+
+
+@router.post("/entry-guide")
+async def get_entry_guide(req: EntryGuideRequest):
+    country_id = req.country_id
+    item = req.item.strip()
+    if not item:
+        raise HTTPException(status_code=400, detail="사업 아이템을 입력하세요.")
+    meta = COUNTRY_META.get(country_id)
+    if meta is None:
+        raise HTTPException(status_code=404, detail=f"Country not found: {country_id}")
+
+    cache_key = f"v4::{country_id}::{item.lower()}"
+    cached = _GUIDE_CACHE.get(cache_key)
+    if cached and (time.time() - cached["ts"]) < _CACHE_TTL:
+        return {**cached["data"], "cached": True}
+
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key or api_key.startswith("your_"):
+        raise HTTPException(status_code=503, detail="ANTHROPIC_API_KEY가 설정되지 않았습니다.")
+
+    # KOTRA 공공데이터 근거 자료 수집 (미제공 국가·API 장애 시 None/[]로 폴백)
+    kotra_nation, kotra_news = await asyncio.gather(
+        fetch_nation_brief(country_id),
+        fetch_trade_news(country_id, limit=5),
+    )
+
+    prompt = _build_guide_prompt(country_id, meta, item, req.sector, kotra_nation, kotra_news)
+    try:
+        client = anthropic.Anthropic(api_key=api_key)
+        message = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=6000,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        if message.stop_reason == "max_tokens":
+            raise HTTPException(status_code=502, detail="AI 응답이 길이 제한으로 잘렸습니다. 다시 시도해주세요.")
+        raw = message.content[0].text.strip()
+        # 마크다운 코드펜스·전후 잡담·문자열 내 제어문자를 모두 허용해서 JSON 추출
+        m = re.search(r"```(?:json)?\s*(\{.*\})\s*```", raw, re.DOTALL)
+        if m:
+            raw = m.group(1)
+        elif not raw.startswith("{"):
+            m = re.search(r"\{.*\}", raw, re.DOTALL)
+            raw = m.group(0) if m else raw
+        guide = json.loads(raw, strict=False)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=502, detail="AI 응답 파싱 실패")
+    except anthropic.APIError as e:
+        raise HTTPException(status_code=502, detail=f"Claude API 오류: {e}")
+
+    data_sources = ["Claude AI"]
+    if kotra_nation:
+        data_sources.insert(0, "KOTRA 국가정보 (data.go.kr)")
+    if kotra_news:
+        data_sources.insert(-1, "KOTRA 해외시장뉴스 (data.go.kr)")
+
+    result = {
+        "country_id": country_id,
+        "item": item,
+        "overview": guide.get("overview", ""),
+        "difficulty": guide.get("difficulty"),
+        "key_risks": guide.get("key_risks", []),
+        "first_actions": guide.get("first_actions", []),
+        "total_duration": guide.get("total_duration", ""),
+        "must_check": guide.get("must_check", []),
+        "steps": guide.get("steps", []),
+        "customs": guide.get("customs", []),
+        "legal": guide.get("legal", []),
+        "practices": guide.get("practices", []),
+        "resources": guide.get("resources", []),
+        "data_sources": data_sources,
+        "nation": kotra_nation,
+        "news": kotra_news,
+    }
+    _GUIDE_CACHE[cache_key] = {"data": result, "ts": time.time()}
     return result
