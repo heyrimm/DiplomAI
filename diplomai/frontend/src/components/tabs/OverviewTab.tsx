@@ -6,6 +6,7 @@ import type {
   Recommendation, TravelAlarm, SafetyNoticesResponse, AlarmHistoryItem,
 } from "@/types";
 import HorizontalBarChart from "@/components/HorizontalBarChart";
+import CitedText from "@/components/CitedText";
 
 interface Props {
   country: Country;
@@ -181,7 +182,7 @@ export default function OverviewTab({
             <p style={{ fontWeight: 600, color: "var(--ink)", fontSize: 14, marginBottom: 5 }}>
               {recommendations[0].title}
             </p>
-            <p className="ai-insight-text">{recommendations[0].rationale}</p>
+            <p className="ai-insight-text"><CitedText text={recommendations[0].rationale} /></p>
             <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap" }}>
               <span className="badge badge-blue">{recommendations[0].sector}</span>
               <span className="badge badge-neutral">{recommendations[0].budget_estimate}</span>
@@ -217,7 +218,7 @@ export default function OverviewTab({
                   </div>
                   {h.summary && (
                     <p style={{ fontSize: 12.5, color: "var(--ink-soft)", marginTop: 4, lineHeight: 1.5 }}>
-                      {h.summary.slice(0, 120)}{h.summary.length > 120 ? "…" : ""}
+                      {h.summary}
                     </p>
                   )}
                 </div>

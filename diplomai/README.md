@@ -57,10 +57,14 @@ npm run dev
 | 지자체 교류 선례 | 아프리카 국가 선택 시 국내 지자체의 교류협력 사례 표시 | 한아프리카재단 CSV |
 | 여행경보 | 국가별 여행경보 단계 + 최근 발령 이력 | 외교부 여행경보 API (data.go.kr) |
 | AI ODA 추천 | ODA 사업 3건 + 공공외교 강화 사업 2건 (데이터 출처 인용 포함) | Claude AI + KOICA/세종학당 실데이터 |
+| **사업 진단** | 사업 아이템 텍스트 또는 계획서 PDF(32MB 이하)를 올리면 국가 적합도 점수·강점·리스크·유사 선례·조정안을 진단 | 공공데이터 신호 규칙 합산 + Claude AI (수치 인용 `[[수치\|출처]]`) |
+| 진출 절차 가이드 | 진단한 사업으로 현지 진출 시 절차(사전조사→법인 설립→인허가→통관→운영) + 통관·법률·비즈니스 관례 유의점 | Claude AI 생성 (참고용 — 세부 수치는 공식 채널 확인 안내) |
 | ODA 시뮬레이션 | 섹터별 예산 재배분 → HDI·수혜인구·SDG 기여 실시간 추정 | KOICA 협력국 통합 개발 지표 (회귀 추정치) |
 | AI 시나리오 분석 | 시뮬레이션 결과 기반 정책 효과성·리스크 분석 | Claude AI |
-| 분석 보고서 생성 | AI 종합 전략 분석 + 섹션별 보고서 생성 → Markdown 다운로드 | Claude AI + 전체 실데이터 |
+| 분석 보고서 생성 | AI 종합 전략 분석 + 섹션별 보고서 생성 → Markdown 다운로드 · 인쇄/PDF 출력, 데이터 인용 하이라이트 | Claude AI + 전체 실데이터 |
 | **사업계획서 초안 생성** | 배경–목표–대상–활동–예산–KPI–리스크 구조의 실무 문서를 AI가 작성 (사각지대·여행경보 데이터 자동 반영, AI 추천 사업 기반 구체화 지원) → Markdown 다운로드 | Claude AI + 전체 실데이터 |
+
+화면은 좌측 사이드바 기준 **글로벌 현황 → (국가 선택) → 종합 개요 · ODA 분석 · 공공외교 · 사업 진단 · 시뮬레이션 · 종합 보고서** 순으로 구성됩니다.
 
 ---
 
@@ -88,15 +92,22 @@ npm run dev
 
 ```
 GET  /api/global/summary                전 세계 KOICA·세종학당·KPI 요약
+GET  /api/global/gaps                   공공외교 공백 신호 TOP 국가
 GET  /api/countries/                    국가 목록 (70개국)
+GET  /api/countries/search              국가 검색 (자동완성)
 GET  /api/countries/{id}               국가 상세 (개발지표 포함)
 GET  /api/oda/{id}/budget              분야별 ODA 예산 (KOICA 실데이터)
 GET  /api/oda/{id}/gaps                ODA 사각지대 분석 (지역 평균 비율 실계산)
 GET  /api/oda/{id}/history             KOICA 지원 연도별 추이
+GET  /api/oda/{id}/peer-comparison     동일 지역 유사국 대비 비교 (KOICA CSV 실계산)
 POST /api/ai/recommend                  AI 사업 추천 (ODA 3건 + 공공외교 2건)
+POST /api/ai/evaluate                   사업 진단 (텍스트 또는 PDF 업로드)
+POST /api/ai/entry-guide                진출 절차 가이드 (법인 설립·인허가·통관·관례)
 GET  /api/diplomacy/{id}               공공외교 지수·세종학당·재외동포·재외공관
+GET  /api/safety/overview              전 세계 여행경보 요약
 GET  /api/safety/{id}/alarm            여행경보 현황
-GET  /api/safety/{id}/history          여행경보 발령 이력
+GET  /api/safety/{id}/notices          외교부 공지
+GET  /api/safety/{id}/alarm-history    여행경보 발령 이력
 GET  /api/simulation/{id}/base         시뮬레이션 기본 데이터
 POST /api/simulation/ai-analyze         AI 시나리오 분석
 POST /api/report/generate              AI 보고서·사업계획서 초안 생성 (mode: summary | plan)
@@ -131,32 +142,36 @@ diplomai/
       country_meta.py        70개국 메타데이터 (지역·소득·HDI 등)
       *.csv                  KOICA·세종학당·재외동포 공공데이터
     routers/
-      countries.py           국가 목록·상세
-      oda.py                 ODA 예산·사각지대·이력
-      ai.py                  AI 사업 추천
+      countries.py           국가 목록·검색·상세
+      oda.py                 ODA 예산·사각지대·이력·유사국 비교
+      ai.py                  AI 사업 추천·사업 진단·진출 절차 가이드
       diplomacy.py           공공외교 지수
-      safety.py              여행경보
+      safety.py              여행경보·공지
       simulation.py          ODA 예산 시뮬레이션
-      global_stats.py        전 세계 요약
+      global_stats.py        전 세계 요약·공백 신호
       report.py              AI 보고서 생성
     services/
       koica_csv.py           KOICA ODA CSV 파서
       koica_indicators.py    협력국 개발지표 + 지역 평균 섹터 비율
       public_diplomacy.py    세종학당·재외동포·재외공관 서비스
+      kf_data.py             KF 사업정보·한국학·지자체 교류 데이터
       mofa_api.py            외교부 여행경보 API
   frontend/
     src/
       app/
-        page.tsx             메인 페이지 (글로벌 대시보드 + 국가별 탭)
+        page.tsx             메인 페이지 (사이드바 + 글로벌 현황/국가별 뷰)
       components/
-        GlobalDashboard.tsx  메인 글로벌 대시보드
-        CountrySelector.tsx
+        Sidebar.tsx          좌측 내비게이션
+        GlobalDashboard.tsx  글로벌 현황 대시보드
+        CountryLanding.tsx   국가 선택 랜딩
+        BusinessEvaluator.tsx 사업 진단 + 진출 절차 가이드
+        CitedText.tsx        데이터 인용 하이라이트
         OdaBudgetChart.tsx
         AiRecommendationCards.tsx
         tabs/
+          OverviewTab.tsx    종합 개요
           OdaTab.tsx
           DiplomacyTab.tsx
-          SafetyTab.tsx
           SimulationTab.tsx
           ReportTab.tsx
       types/

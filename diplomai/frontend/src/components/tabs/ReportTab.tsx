@@ -15,7 +15,11 @@ interface Props {
   diplomacy: DiplomacyResponse | null;
   recommendations: Recommendation[];
   planBaseIndex?: number;
+  planSeed?: Recommendation | null;
 }
+
+// 계획서 기반 특수값: -1 = 국가 종합, -2 = 사업 진단 결과, >=0 = AI 추천 인덱스
+const PLAN_BASE_EVAL = -2;
 
 const PLAN_STEPS = [
   "공공데이터 수집·통합 — KOICA·KF·세종학당·재외동포",
@@ -27,7 +31,7 @@ const PLAN_STEPS = [
 const SECTIONS = [
   { id: "overview",  label: "국가 개요" },
   { id: "oda",       label: "ODA 현황" },
-  { id: "gaps",      label: "사각지대 분석" },
+  { id: "gaps",      label: "ODA 사각지대" },
   { id: "diplomacy", label: "공공외교 현황" },
   { id: "recommend", label: "AI 사업 추천" },
 ];
@@ -36,7 +40,7 @@ const DATA_SOURCES_LINE =
   "KOICA 공공데이터(ODA 실적·사업분야별 통계), 외교부 재외동포현황(2021), 세종학당재단(문체부 산하) 수강생 현황(2025), 외교부 여행경보 API";
 
 export default function ReportTab({
-  country, budget, gaps, diplomacy, recommendations, planBaseIndex = -1,
+  country, budget, gaps, diplomacy, recommendations, planBaseIndex = -1, planSeed = null,
 }: Props) {
   const [docMode, setDocMode] = useState<"report" | "plan">("report");
 
@@ -62,6 +66,14 @@ export default function ReportTab({
       setPlanBase(planBaseIndex);
     }
   }, [planBaseIndex, recommendations.length]);
+
+  // 사업 진단 결과 "이 아이템으로 계획서" → 계획서 모드 전환 + 진단 시드 선택
+  useEffect(() => {
+    if (planSeed) {
+      setDocMode("plan");
+      setPlanBase(PLAN_BASE_EVAL);
+    }
+  }, [planSeed]);
 
   useEffect(() => () => { if (stepTimer.current) clearInterval(stepTimer.current); }, []);
 
@@ -95,11 +107,15 @@ export default function ReportTab({
       4000,
     );
     try {
+      const baseRec =
+        planBase >= 0 ? recommendations[planBase]
+        : planBase === PLAN_BASE_EVAL ? planSeed
+        : null;
       const data = await api.generateReport({
         country_id: country.id,
         sections: [],
         mode: "plan",
-        base_recommendation: planBase >= 0 ? recommendations[planBase] : null,
+        base_recommendation: baseRec,
       });
       if (!data.plan) throw new Error("계획서 데이터가 비어 있습니다.");
       setPlan(data.plan);
@@ -120,7 +136,7 @@ export default function ReportTab({
       ``,
     ];
     if (executiveSummary) {
-      lines.push(`## 종합 전략 분석 (AI)`, ``, executiveSummary, ``, `*생성: Claude AI · KOICA 공공데이터 기반*`, ``);
+      lines.push(`## 종합 전략 분석 (AI)`, ``, stripCites(executiveSummary), ``, `*생성: Claude AI · KOICA 공공데이터 기반*`, ``);
     }
     if (selected.has("overview")) {
       lines.push(`## 1. 국가 개요`, ``, `| 항목 | 값 |`, `|------|------|`,
@@ -310,7 +326,7 @@ export default function ReportTab({
                   <p style={{ fontSize: 11.5, fontWeight: 700, color: "var(--accent)", marginBottom: 8, textTransform: "uppercase", letterSpacing: ".05em" }}>
                     종합 전략 분석 (AI)
                   </p>
-                  <p style={{ fontSize: 13.5, color: "var(--ink)", lineHeight: 1.75 }}>{executiveSummary}</p>
+                  <p style={{ fontSize: 13.5, color: "var(--ink)", lineHeight: 1.75 }}><CitedText text={executiveSummary} /></p>
                   <p style={{ fontSize: 11, color: "var(--faint)", marginTop: 8 }}>
                     생성: Claude AI · KOICA 공공데이터 기반
                   </p>
@@ -468,6 +484,14 @@ export default function ReportTab({
                 >
                   국가 종합 (신규 발굴)
                 </button>
+                {planSeed && (
+                  <button
+                    className={`section-toggle ${planBase === PLAN_BASE_EVAL ? "on" : "off"}`}
+                    onClick={() => setPlanBase(PLAN_BASE_EVAL)}
+                  >
+                    🎯 진단한 내 사업
+                  </button>
+                )}
                 {recommendations.map((r, i) => (
                   <button
                     key={i}
@@ -493,7 +517,9 @@ export default function ReportTab({
                   {planGenerating ? "계획서 작성 중…" : "사업계획서 초안 생성"}
                 </button>
                 <span style={{ fontSize: 12.5, color: "var(--muted)" }}>
-                  {planBase === -1 ? "국가 데이터 종합 기반" : `"${recommendations[planBase]?.title}" 구체화`}
+                  {planBase === -1 ? "국가 데이터 종합 기반"
+                    : planBase === PLAN_BASE_EVAL ? `"${planSeed?.title}" 진단 결과 구체화`
+                    : `"${recommendations[planBase]?.title}" 구체화`}
                 </span>
               </div>
 

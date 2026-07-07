@@ -68,7 +68,7 @@ def global_gaps():
 
     items.sort(key=lambda x: x["oda_budget"], reverse=True)
     _GAPS_CACHE = {
-        "gaps": items[:10],
+        "gaps": items,
         "total_detected": len(items),
         "criteria": "KOICA ODA 연 50억원 이상 지원 국가 중 KF 공공외교 사업 이력이 없거나 2018년 이전 중단",
         "sources": [

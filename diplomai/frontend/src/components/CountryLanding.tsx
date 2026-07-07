@@ -10,6 +10,19 @@ interface Props {
   onSelect: (countryId: string) => void;
 }
 
+interface GapEntry {
+  country_id: string;
+  region: string;
+  oda_budget: number;
+  kf_total: number;
+  kf_last_year: number | null;
+}
+interface GapsResponse {
+  gaps: GapEntry[];
+  total_detected: number;
+  criteria: string;
+}
+
 /* 대륙 그룹 정의 (표시 순서대로) */
 const CONTINENTS: { key: string; icon: string; label: string; regions: string[] }[] = [
   { key: "asia",    icon: "🌏", label: "아시아",     regions: ["동남아시아", "동아시아", "남아시아", "중앙아시아"] },
@@ -32,9 +45,15 @@ function continentOf(c: Country): string {
 export default function CountryLanding({ onSelect }: Props) {
   const [countries, setCountries] = useState<Country[] | null>(null);
   const [query, setQuery] = useState("");
+  const [gaps, setGaps] = useState<GapsResponse | null>(null);
+  const [gapsExpanded, setGapsExpanded] = useState(false);
 
   useEffect(() => {
     api.searchCountries("").then(setCountries).catch(() => setCountries([]));
+    fetch("/api/global/gaps")
+      .then((r) => r.json())
+      .then((d) => { if (d?.gaps?.length) setGaps(d); })
+      .catch(() => {});
   }, []);
 
   /* KOICA 지원 실적 순위 (목록이 실적 내림차순) */
@@ -91,15 +110,73 @@ export default function CountryLanding({ onSelect }: Props) {
         )}
       </div>
 
+      {/* ── 공공외교 공백 국가 — '어디서 시작할지' 첫 화면 제안 ── */}
+      {gaps && gaps.gaps.length > 0 && (
+        <div style={{
+          marginTop: 18,
+          background: "rgba(180,83,9,.05)",
+          border: "1px solid rgba(180,83,9,.22)",
+          borderRadius: "var(--r-lg, 14px)",
+          padding: "14px 18px",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>
+              ⚠ 공공외교 공백 국가 <span style={{ color: "#b45309" }}>{gaps.total_detected}개국</span>
+            </span>
+            <span style={{ fontSize: 11.5, color: "var(--faint)" }}>
+              ODA는 활발하나 공공외교(KF) 활동이 없거나 끊긴 곳 — 여기서 시작해 보세요
+            </span>
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {(gapsExpanded ? gaps.gaps : gaps.gaps.slice(0, 6)).map((g) => (
+              <button
+                key={g.country_id}
+                onClick={() => onSelect(g.country_id)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 8, cursor: "pointer",
+                  padding: "7px 12px", borderRadius: 99,
+                  border: "1px solid rgba(180,83,9,.28)", background: "var(--surface)",
+                }}
+              >
+                {flagSrc(g.country_id) && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={flagSrc(g.country_id)!} alt="" style={{ width: 16, height: 12, borderRadius: 2, objectFit: "cover" }} />
+                )}
+                <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{g.country_id}</span>
+                <span style={{ fontSize: 11, color: "#b45309", fontVariantNumeric: "tabular-nums" }}>
+                  ODA 연 {Math.round(g.oda_budget)}억
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {gaps.gaps.length > 6 && (
+            <button
+              onClick={() => setGapsExpanded((v) => !v)}
+              style={{
+                width: "100%", marginTop: 10, padding: "8px 0", cursor: "pointer",
+                background: "transparent", border: "none",
+                borderTop: "1px dashed rgba(180,83,9,.25)",
+                fontSize: 12, fontWeight: 600, color: "#b45309",
+              }}
+            >
+              {gapsExpanded
+                ? "접기 ▴"
+                : `전체 ${gaps.total_detected}개국 펼쳐 보기  +${gaps.gaps.length - 6} ▾`}
+            </button>
+          )}
+        </div>
+      )}
+
       <div className="landing-head">
         <span className="landing-eyebrow">
           <span className="landing-eyebrow-dot" />
           국가 선택
         </span>
-        <h2 className="landing-title">분석할 국가를 선택하세요</h2>
+        <h2 className="landing-title">국가를 선택해 사업 설계를 시작하세요</h2>
         <p className="landing-desc">
-          KOICA 지원 실적 기준 <strong>30개 협력국</strong>을 대륙별로 정리했습니다.
-          국가를 선택하면 ODA·공공외교·AI 사업 추천 분석이 시작됩니다.
+          지자체·대학·NGO의 국제교류 담당자를 위한 공공데이터 기반 사업 설계 도구입니다.
+          국가를 고르면 <strong>진단 → 사업계획서 초안 → 현지 실행 준비</strong>까지 이어집니다.
         </p>
       </div>
 
