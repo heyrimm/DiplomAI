@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from routers import countries, oda, ai, diplomacy, safety, simulation, global_stats, report
+from security import SecurityMiddleware
 
 app = FastAPI(
     title="DiplomAI API",
@@ -17,7 +18,7 @@ app = FastAPI(
 # 배포 시 ALLOWED_ORIGINS=https://<vercel-domain> 을 쉼표 구분으로 지정
 _origins = [
     o.strip()
-    for o in os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+    for o in os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:3001").split(",")
     if o.strip()
 ]
 
@@ -25,9 +26,12 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
 )
+
+# 요청 제한 + 보안 응답 헤더 (외부 공개 배포 대비)
+app.add_middleware(SecurityMiddleware)
 
 app.include_router(countries.router)
 app.include_router(oda.router)

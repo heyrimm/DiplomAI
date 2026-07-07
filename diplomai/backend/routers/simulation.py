@@ -219,6 +219,13 @@ async def ai_scenario_analyze(req: ScenarioRequest):
     if meta is None:
         raise HTTPException(status_code=404, detail=f"Country not found: {country_id}")
 
+    # 섹터명은 알려진 값만 허용(프롬프트 주입 방지), 조정폭은 ±50%로 클램프
+    req.adjustments = {
+        s: max(-50.0, min(50.0, p))
+        for s, p in req.adjustments.items()
+        if s in HDI_COEFF
+    }
+
     # 동일 시나리오 캐시
     cache_key = f"{country_id}_{json.dumps(req.adjustments, sort_keys=True)}"
     cached = _AI_CACHE.get(cache_key)
@@ -293,5 +300,9 @@ overall_score는 이 시나리오의 정책 효과성 점수 (0-100, 정수)."""
         "analysis":   analysis,
         "scenario":   req.adjustments,
     }
+    # 캐시 크기 상한 — 사용자 입력이 키에 포함되므로 무한 성장 방지
+    if len(_AI_CACHE) >= 256:
+        oldest = min(_AI_CACHE, key=lambda k: _AI_CACHE[k]["ts"])
+        _AI_CACHE.pop(oldest, None)
     _AI_CACHE[cache_key] = {"data": result, "ts": time.time()}
     return result
