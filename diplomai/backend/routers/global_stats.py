@@ -45,7 +45,7 @@ def global_summary():
 
 @router.get("/gaps")
 def global_gaps():
-    """전 국가 공공외교 공백 스캔 — ODA 지원 활발 + KF 사업 부재/중단 국가 목록 (ODA 규모순)"""
+    """전 국가 공공외교 공백 스캔 — ODA 지원 활발 + KF 사업 이력 부재/오래된 국가 목록."""
     global _GAPS_CACHE
     if _GAPS_CACHE is not None:
         return _GAPS_CACHE
@@ -70,7 +70,7 @@ def global_gaps():
     _GAPS_CACHE = {
         "gaps": items,
         "total_detected": len(items),
-        "criteria": "KOICA ODA 연 50억원 이상 지원 국가 중 KF 공공외교 사업 이력이 없거나 2018년 이전 중단",
+        "criteria": "KOICA ODA 연 50억원 이상 지원 국가 중 KF 사업 이력이 없거나 최근 이력이 2017년 이전에만 확인되는 국가",
         "sources": [
             "KOICA 국가별 지원실적 (data.go.kr)",
             "KF 융합 공공외교·ODA 사업정보 (data.go.kr)",

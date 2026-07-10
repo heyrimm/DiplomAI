@@ -29,7 +29,7 @@ async def get_diplomacy(country_id: str):
 
     sejong = get_sejong(country_id)
     diaspora = get_diaspora(country_id)
-    embassy = await get_embassy_count(name_en)
+    embassy, embassy_source_type = await get_embassy_count(name_en)
     kf_projects = get_kf_projects(country_id)
     korean_studies = get_korean_studies(country_id)
     africa_exchanges = get_africa_exchanges(country_id) if "아프리카" in region else None
@@ -110,10 +110,17 @@ async def get_diplomacy(country_id: str):
     if kf_gap:
         ai_insight += " ⚠ " + kf_gap["reason"]
 
+    embassy_source = (
+        "외교부 재외공관 정보 API (data.go.kr)"
+        if embassy_source_type == "api"
+        else "외교부 재외공관 공개자료 기반 정적 보조값 (API 연결 실패)"
+        if embassy_source_type == "fallback"
+        else "외교부 재외공관 정보 확인 불가"
+    )
     data_sources = [
         "세종학당재단(문체부 산하) 국가별 수강생 현황 (2025)",
         "외교부 재외동포현황 (2021)",
-        "외교부 재외공관 정보 API (data.go.kr)",
+        embassy_source,
         "KF 융합 공공외교·ODA 사업정보 (data.go.kr)",
         "KF 해외대학 한국학 과정 운영현황 (2025)",
     ]
@@ -127,6 +134,7 @@ async def get_diplomacy(country_id: str):
         "learners_yoy": learners_yoy,
         "diaspora_count": diaspora_count,
         "embassy_count": embassy_count,
+        "embassy_source_type": embassy_source_type,
         "sejong_history": sejong_history,
         "korean_studies": korean_studies,
         "kf_projects": kf_projects,

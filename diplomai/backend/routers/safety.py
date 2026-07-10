@@ -64,14 +64,6 @@ def _summarize_history(country_id: str, history: list[dict]) -> list[dict]:
         logging.warning("alarm-history AI 요약 실패, 원문 표시: %s", e)
     return history
 
-_MOCK_ALARM = {
-    "인도네시아": {"level": "1", "level_label": "여행유의", "level_color": "blue",   "remark": ""},
-    "베트남":     {"level": "1", "level_label": "여행유의", "level_color": "blue",   "remark": ""},
-    "캄보디아":   {"level": "2", "level_label": "여행자제", "level_color": "yellow", "remark": ""},
-    "에티오피아": {"level": "2", "level_label": "여행자제", "level_color": "yellow", "remark": ""},
-}
-
-
 @router.get("/overview")
 async def get_alarm_overview():
     """외교부 여행경보 전체 현황 — 단계별 국가 목록."""
@@ -117,12 +109,16 @@ async def get_travel_alarm(country_id: str):
     if result:
         return result
 
-    mock = _MOCK_ALARM.get(country_id, {"level": "0", "level_label": "정보 없음", "level_color": "gray", "remark": ""})
     return {
         "country_id": country_id,
         "country_name": country_id,
-        "source": "mock (API 키 미설정 또는 연결 실패)",
-        **mock,
+        "level": "0",
+        "level_label": "정보 확인 불가",
+        "level_color": "gray",
+        "remark": "외교부 여행경보 API에 연결할 수 없어 실제 경보를 표시하지 않습니다.",
+        "updated_at": None,
+        "source": "외교부 여행경보 API 연결 실패",
+        "is_fallback": True,
     }
 
 
@@ -138,7 +134,8 @@ async def get_safety_notices(country_id: str):
     return {
         "country_id": country_id,
         "notices": [],
-        "source": "mock (API 키 미설정 또는 연결 실패)",
+        "source": "외교부 안전공지 API 연결 실패",
+        "is_fallback": True,
     }
 
 
