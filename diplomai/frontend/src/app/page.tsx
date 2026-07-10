@@ -26,6 +26,7 @@ import AiRecommendationCards from "@/components/AiRecommendationCards";
 import CountryLanding from "@/components/CountryLanding";
 import GlobalDashboard from "@/components/GlobalDashboard";
 import BusinessEvaluator from "@/components/BusinessEvaluator";
+import EntryGuidePanel, { type EntryGuideSeed } from "@/components/EntryGuidePanel";
 import { ChevronLeft, ChevronRight, HelpCircle, Bell, Settings } from "@/components/icons";
 
 const TAB_LABELS: Record<TabId, string> = {
@@ -36,6 +37,7 @@ const TAB_LABELS: Record<TabId, string> = {
   evaluate:   "사업 진단",
   simulation: "예산 시뮬레이션",
   report:     "보고서·계획서",
+  guide:      "실행 가이드",
 };
 
 export default function Home() {
@@ -51,6 +53,7 @@ export default function Home() {
   const [loadingRec, setLoadingRec]   = useState(false);
   const [planBaseIndex, setPlanBaseIndex] = useState(-1);
   const [planSeed, setPlanSeed]       = useState<Recommendation | null>(null);
+  const [guideSeed, setGuideSeed]     = useState<EntryGuideSeed | null>(null);
   const [activeTab, setActiveTab]     = useState<TabId>("overview");
   const [error, setError]             = useState<string | null>(null);
   const [loading, setLoading]         = useState(false);
@@ -68,6 +71,7 @@ export default function Home() {
     setRecommendations([]);
     setPlanBaseIndex(-1);
     setPlanSeed(null);
+    setGuideSeed(null);
     setError(null);
     setLoading(true);
 
@@ -129,9 +133,20 @@ export default function Home() {
     setActiveTab("report");
   };
 
+  const handleOpenGuide = (seed: EntryGuideSeed) => {
+    setGuideSeed(seed);
+    setActiveTab("guide");
+  };
+
+  const handleNavChange = (tab: TabId) => {
+    // 사이드바 직접 진입은 이전 사업의 자동 생성 시드를 이어받지 않는다.
+    if (tab === "guide") setGuideSeed(null);
+    setActiveTab(tab);
+  };
+
   const totalBudget = budget?.total_억원 ?? 0;
   const yoyPct      = budget?.yoy_pct ?? null;
-  const riskScore   = country ? Math.round((1 - country.hdi) * 100) : null;
+  const devNeedScore = country ? Math.round((1 - country.hdi) * 100) : null;
 
   return (
     <div className="app-shell">
@@ -141,8 +156,8 @@ export default function Home() {
         selectedId={selectedId}
         activeNav={activeTab}
         onCountryChange={handleCountrySelect}
-        onNavChange={(id) => setActiveTab(id as TabId)}
-        onHome={() => { setSelectedId(null); setActiveTab("overview"); }}
+        onNavChange={(id) => handleNavChange(id as TabId)}
+        onHome={() => { setSelectedId(null); setGuideSeed(null); setActiveTab("overview"); }}
       />
 
       {/* ── Main area ── */}
@@ -245,8 +260,8 @@ export default function Home() {
                 </div>
 
                 <div className="metric-cell">
-                  <span className="m-label">리스크 스코어</span>
-                  <span className="m-value">{riskScore ?? "—"}<span style={{fontSize:13,fontWeight:400,color:"var(--muted)"}}>/100</span></span>
+                  <span className="m-label">개발수요 지수</span>
+                  <span className="m-value">{devNeedScore ?? "—"}<span style={{fontSize:13,fontWeight:400,color:"var(--muted)"}}>/100</span></span>
                   <span className="m-sub neutral">HDI 기반 산출</span>
                 </div>
 
@@ -342,7 +357,11 @@ export default function Home() {
                     <h2 className="tab-page-title">사업 타당성 진단 — {country.name}</h2>
                     <span className="tab-page-sub">내 사업 아이템을 공공데이터로 평가 · 가능성 점수 산출</span>
                   </div>
-                  <BusinessEvaluator country={country} onBuildPlan={handleBuildPlanFromEval} />
+                  <BusinessEvaluator
+                    country={country}
+                    onBuildPlan={handleBuildPlanFromEval}
+                    onOpenGuide={handleOpenGuide}
+                  />
                 </>
               ) : !loading && (
                 <div className="empty-state">국가를 먼저 선택하세요</div>
@@ -358,6 +377,23 @@ export default function Home() {
                 <span className="tab-page-sub">예산 배분 시나리오 분석</span>
               </div>
               <SimulationTab countryId={selectedId} />
+            </div>
+          )}
+
+          {/* ── 현지 실행 준비 가이드 탭 ── */}
+          {activeTab === "guide" && (
+            <div className="content-area">
+              {country ? (
+                <>
+                  <div className="tab-page-header">
+                    <h2 className="tab-page-title">현지 실행 준비 가이드 — {country.name}</h2>
+                    <span className="tab-page-sub">KOTRA 국가정보·해외시장뉴스 기반 등록·인허가·통관·현지 관례 검토</span>
+                  </div>
+                  <EntryGuidePanel country={country} seed={guideSeed ?? undefined} />
+                </>
+              ) : !loading && (
+                <div className="empty-state">국가를 먼저 선택하세요</div>
+              )}
             </div>
           )}
 
@@ -378,6 +414,7 @@ export default function Home() {
                     recommendations={recommendations}
                     planBaseIndex={planBaseIndex}
                     planSeed={planSeed}
+                    onOpenGuide={handleOpenGuide}
                   />
                 </>
               ) : !loading && (

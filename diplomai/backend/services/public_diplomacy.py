@@ -5,6 +5,7 @@
 - data.go.kr 재외공관 API
 """
 
+import asyncio
 import csv
 import math
 import os
@@ -156,18 +157,24 @@ async def _fetch_embassy_raw() -> dict[str, int]:
     if not api_key:
         return {}
     try:
-        async with httpx.AsyncClient(timeout=httpx.Timeout(10.0)) as client:
-            resp = await client.get(
+        # 일부 Windows/프록시 환경에서 AsyncClient 연결이 지연되어
+        # 동기 요청을 작업 스레드에서 실행한다. 이벤트 루프는 차단하지 않는다.
+        def fetch() -> httpx.Response:
+            return httpx.get(
                 "https://apis.data.go.kr/1262000/EmbassyService2/getEmbassyList2",
                 params={
                     "serviceKey": api_key,
                     "pageNo": "1",
-                    "numOfRows": "1000",
+                    # 현재 전체 공관은 184건이며, 과도한 1,000건 요청은
+                    # 공공데이터포털에서 간헐적으로 응답 지연을 유발한다.
+                    "numOfRows": "200",
                     "type": "json",
                 },
+                timeout=30.0,
             )
-            resp.raise_for_status()
-            body = resp.json()
+        resp = await asyncio.to_thread(fetch)
+        resp.raise_for_status()
+        body = resp.json()
         items = (
             body.get("response", {}).get("body", {})
                 .get("items", {}).get("item", [])
@@ -210,28 +217,28 @@ def get_diaspora(ko_name: str) -> int | None:
     return val if val else None
 
 
-async def get_embassy_count(name_en: str) -> Optional[int]:
-    """영어 국가명으로 공관 수 조회 (API → fallback 순서)"""
+async def get_embassy_count(name_en: str) -> tuple[Optional[int], str]:
+    """영어 국가명으로 공관 수와 출처 유형(api/fallback/unavailable)을 조회."""
     # API 시도
     data = await _embassy_data()
     if data:
         count = data.get(name_en)
         if count is not None:
-            return count
+            return count, "api"
         lower = name_en.lower()
         for k, v in data.items():
             if k.lower() == lower:
-                return v
+                return v, "api"
 
     # API 실패/미활성화 시 fallback 사용
     count = _EMBASSY_FALLBACK.get(name_en)
     if count is not None:
-        return count
+        return count, "fallback"
     lower = name_en.lower()
     for k, v in _EMBASSY_FALLBACK.items():
         if k.lower() == lower:
-            return v
-    return None
+            return v, "fallback"
+    return None, "unavailable"
 
 
 # ── 공공외교 지수 산출 ─────────────────────────────────────────
