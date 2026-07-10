@@ -8,8 +8,10 @@ import json
 import os
 import re
 import time
+from typing import Literal
+
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 import anthropic
 
 from data.country_meta import COUNTRY_META
@@ -29,10 +31,26 @@ _MODEL = os.getenv("REPORT_MODEL", "claude-haiku-4-5-20251001")
 
 
 class ReportRequest(BaseModel):
-    country_id: str
-    sections: list[str] = []
-    mode: str = "summary"  # "summary" | "plan"
+    country_id: str = Field(max_length=50)
+    sections: list[str] = Field(default_factory=list, max_length=10)
+    mode: Literal["summary", "plan"] = "summary"
     base_recommendation: dict | None = None  # AI 추천 사업 1건을 계획서의 기반으로
+
+    @field_validator("sections")
+    @classmethod
+    def _cap_section_len(cls, v: list[str]) -> list[str]:
+        return [s[:32] for s in v]
+
+
+# base_recommendation은 사용자 제어 입력이 프롬프트에 들어가므로 키 화이트리스트 + 길이 제한
+_BASE_REC_KEYS = ("title", "type", "sector", "budget_estimate", "duration", "rationale", "expected_impact")
+
+
+def _sanitize_base_rec(rec: dict | None) -> dict | None:
+    if not isinstance(rec, dict):
+        return None
+    clean = {k: str(rec[k])[:300] for k in _BASE_REC_KEYS if rec.get(k)}
+    return clean or None
 
 
 def _get_client() -> anthropic.Anthropic:
@@ -194,8 +212,8 @@ async def _generate_plan(country_id: str, meta: dict, base_rec: dict | None) -> 
         raise HTTPException(status_code=502, detail=f"Claude API 오류: {e}")
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"계획서 생성 실패: {e}")
+    except Exception:
+        raise HTTPException(status_code=502, detail="계획서 생성에 실패했습니다. 잠시 후 다시 시도해주세요.")
 
     # 예산 금액이 숫자만 오는 경우 단위 보정
     for b in plan.get("budget_plan", []):
@@ -232,8 +250,8 @@ def _generate_summary(country_id: str, meta: dict) -> dict:
         raise HTTPException(status_code=502, detail=f"Claude API 오류: {e}")
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"보고서 생성 실패: {e}")
+    except Exception:
+        raise HTTPException(status_code=502, detail="보고서 생성에 실패했습니다. 잠시 후 다시 시도해주세요.")
 
     return {"country_id": country_id, "mode": "summary", "executive_summary": executive_summary}
 
@@ -245,16 +263,21 @@ async def generate_report(req: ReportRequest):
     if not meta:
         raise HTTPException(status_code=404, detail=f"Country not found: {country_id}")
 
-    base_title = (req.base_recommendation or {}).get("title", "")
+    base_rec = _sanitize_base_rec(req.base_recommendation)
+    base_title = (base_rec or {}).get("title", "")[:100]
     cache_key = f"{req.mode}:{country_id}:{base_title}:{','.join(sorted(req.sections))}"
     cached = _CACHE.get(cache_key)
     if cached and (time.time() - cached["ts"]) < _CACHE_TTL:
         return {**cached["data"], "cached": True}
 
     if req.mode == "plan":
-        result = await _generate_plan(country_id, meta, req.base_recommendation)
+        result = await _generate_plan(country_id, meta, base_rec)
     else:
         result = _generate_summary(country_id, meta)
 
+    # 캐시 크기 상한 — 사용자 입력이 키에 포함되므로 무한 성장 방지
+    if len(_CACHE) >= 256:
+        oldest = min(_CACHE, key=lambda k: _CACHE[k]["ts"])
+        _CACHE.pop(oldest, None)
     _CACHE[cache_key] = {"data": result, "ts": time.time()}
     return result
