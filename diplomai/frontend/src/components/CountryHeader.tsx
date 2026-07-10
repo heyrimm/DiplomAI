@@ -62,7 +62,7 @@ export default function CountryHeader({ country, riskCount, recommendCount, alar
           )}
           <span className={`badge ${risk.cls}`}>{risk.label}</span>
           {riskCount > 0 && (
-            <span className="badge badge-amber">⚠ 사각지대 {riskCount}개</span>
+            <span className="badge badge-amber">⚠ ODA 사각지대 {riskCount}개</span>
           )}
           {recommendCount > 0 && (
             <span className="badge badge-blue">✦ AI 추천 {recommendCount}건</span>

@@ -16,14 +16,27 @@ import type {
 import Sidebar from "@/components/Sidebar";
 import CountrySearch from "@/components/CountrySearch";
 import CountryHeader from "@/components/CountryHeader";
-import TabNav, { type TabId } from "@/components/TabNav";
+import { type TabId } from "@/components/TabNav";
 import OverviewTab from "@/components/tabs/OverviewTab";
 import OdaTab from "@/components/tabs/OdaTab";
 import DiplomacyTab from "@/components/tabs/DiplomacyTab";
 import SimulationTab from "@/components/tabs/SimulationTab";
 import ReportTab from "@/components/tabs/ReportTab";
 import AiRecommendationCards from "@/components/AiRecommendationCards";
+import CountryLanding from "@/components/CountryLanding";
 import GlobalDashboard from "@/components/GlobalDashboard";
+import BusinessEvaluator from "@/components/BusinessEvaluator";
+import { ChevronLeft, ChevronRight, HelpCircle, Bell, Settings } from "@/components/icons";
+
+const TAB_LABELS: Record<TabId, string> = {
+  global:     "글로벌 현황",
+  overview:   "종합 개요",
+  oda:        "ODA 분석",
+  diplomacy:  "공공외교",
+  evaluate:   "사업 진단",
+  simulation: "예산 시뮬레이션",
+  report:     "보고서·계획서",
+};
 
 export default function Home() {
   const [selectedId, setSelectedId]   = useState<string | null>(null);
@@ -37,6 +50,7 @@ export default function Home() {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [loadingRec, setLoadingRec]   = useState(false);
   const [planBaseIndex, setPlanBaseIndex] = useState(-1);
+  const [planSeed, setPlanSeed]       = useState<Recommendation | null>(null);
   const [activeTab, setActiveTab]     = useState<TabId>("overview");
   const [error, setError]             = useState<string | null>(null);
   const [loading, setLoading]         = useState(false);
@@ -53,6 +67,7 @@ export default function Home() {
     setSafetyNotices(null);
     setRecommendations([]);
     setPlanBaseIndex(-1);
+    setPlanSeed(null);
     setError(null);
     setLoading(true);
 
@@ -102,7 +117,15 @@ export default function Home() {
 
   // 추천 카드 → 계획서 생성 원클릭 연결
   const handleSelectForPlan = (index: number) => {
+    setPlanSeed(null);
     setPlanBaseIndex(index);
+    setActiveTab("report");
+  };
+
+  // 사업 진단 결과 → 계획서 생성 원클릭 연결 (진단한 내 아이템을 기반으로)
+  const handleBuildPlanFromEval = (seed: Recommendation) => {
+    setPlanBaseIndex(-1);
+    setPlanSeed(seed);
     setActiveTab("report");
   };
 
@@ -119,6 +142,7 @@ export default function Home() {
         activeNav={activeTab}
         onCountryChange={handleCountrySelect}
         onNavChange={(id) => setActiveTab(id as TabId)}
+        onHome={() => { setSelectedId(null); setActiveTab("overview"); }}
       />
 
       {/* ── Main area ── */}
@@ -126,15 +150,35 @@ export default function Home() {
 
         {/* Sticky top nav */}
         <header className="app-nav">
-          <div className="brand-mark" onClick={() => setSelectedId(null)} style={{ cursor: "pointer" }}>
-            <span className="brand-icon">D</span>
-            DiplomAI
+          {/* Breadcrumb */}
+          <div className="breadcrumb">
+            <div className="crumb-btns">
+              <button className="crumb-btn" aria-label="뒤로"><ChevronLeft size={15} /></button>
+              <button className="crumb-btn" aria-label="앞으로"><ChevronRight size={15} /></button>
+            </div>
+            <div className="crumb-trail">
+              <button
+                className="crumb-muted crumb-home"
+                onClick={() => setSelectedId(null)}
+                title="첫 화면으로"
+              >
+                분석
+              </button>
+              <span className="crumb-sep">/</span>
+              <span className="crumb-current">{TAB_LABELS[activeTab]}</span>
+            </div>
           </div>
 
           {/* 국가 검색창 */}
           <CountrySearch selected={country} onSelect={handleCountrySelect} />
 
-          <TabNav active={activeTab} onChange={setActiveTab} />
+          {/* Action icons */}
+          <div className="nav-actions">
+            <button className="nav-icon-btn" aria-label="도움말"><HelpCircle size={17} /></button>
+            <button className="nav-icon-btn" aria-label="알림"><Bell size={17} /></button>
+            <button className="nav-icon-btn" aria-label="설정"><Settings size={17} /></button>
+            <span className="nav-avatar">교</span>
+          </div>
         </header>
 
         {/* Scrollable content */}
@@ -148,18 +192,29 @@ export default function Home() {
             </div>
           )}
 
-          {/* 국가 미선택 — 글로벌 대시보드 */}
-          {!selectedId && !loading && (
-            <GlobalDashboard
-              onSelectCountry={(id) => {
-                setSelectedId(id);
-                setActiveTab("diplomacy");
-              }}
-            />
+          {/* ── 글로벌 현황 (전세계 대시보드) ── */}
+          {activeTab === "global" && (
+            <div className="content-area">
+              <div className="tab-page-header">
+                <h2 className="tab-page-title">글로벌 현황</h2>
+                <span className="tab-page-sub">전세계 KOICA·세종학당·여행경보 종합</span>
+              </div>
+              <GlobalDashboard
+                onSelectCountry={(id) => {
+                  setSelectedId(id);
+                  setActiveTab("overview");
+                }}
+              />
+            </div>
+          )}
+
+          {/* 국가 미선택 → 대륙별 국가 선택 화면 (최상위 진입 화면) */}
+          {activeTab !== "global" && !selectedId && !loading && (
+            <CountryLanding onSelect={handleCountrySelect} />
           )}
 
           {/* 로딩 상태 */}
-          {loading && (
+          {loading && activeTab !== "global" && (
             <div className="loading-state">
               <span className="spinner" />
               <span>{selectedId} 데이터 로딩 중…</span>
@@ -278,6 +333,23 @@ export default function Home() {
             </div>
           )}
 
+          {/* ── 사업 진단 탭 ── */}
+          {activeTab === "evaluate" && (
+            <div className="content-area">
+              {country ? (
+                <>
+                  <div className="tab-page-header">
+                    <h2 className="tab-page-title">사업 타당성 진단 — {country.name}</h2>
+                    <span className="tab-page-sub">내 사업 아이템을 공공데이터로 평가 · 가능성 점수 산출</span>
+                  </div>
+                  <BusinessEvaluator country={country} onBuildPlan={handleBuildPlanFromEval} />
+                </>
+              ) : !loading && (
+                <div className="empty-state">국가를 먼저 선택하세요</div>
+              )}
+            </div>
+          )}
+
           {/* ── 시뮬레이션 탭 ── */}
           {activeTab === "simulation" && (
             <div className="content-area">
@@ -295,8 +367,8 @@ export default function Home() {
               {country ? (
                 <>
                   <div className="tab-page-header">
-                    <h2 className="tab-page-title">종합 보고서 — {country.name}</h2>
-                    <span className="tab-page-sub">ODA · 공공외교 · AI 추천 종합</span>
+                    <h2 className="tab-page-title">보고서 · 사업계획서 — {country.name}</h2>
+                    <span className="tab-page-sub">근거 인용 사업계획서 초안 생성 · 분석 보고서 · 인쇄/PDF</span>
                   </div>
                   <ReportTab
                     country={country}
@@ -305,6 +377,7 @@ export default function Home() {
                     diplomacy={diplomacy}
                     recommendations={recommendations}
                     planBaseIndex={planBaseIndex}
+                    planSeed={planSeed}
                   />
                 </>
               ) : !loading && (

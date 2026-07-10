@@ -64,6 +64,78 @@ export interface RecommendationsResponse {
   recommendations: Recommendation[];
 }
 
+export interface EvalComponent {
+  label: string;
+  score: number;
+  max: number;
+  note: string;
+}
+
+export interface EvaluateResult {
+  country_id: string;
+  item: string;
+  source?: "text" | "pdf";
+  sector: string;
+  score: number;
+  grade: string;
+  components: EvalComponent[];
+  summary: string;
+  strengths: string[];
+  risks: string[];
+  reasoning: string;
+  similar_precedents: string[];
+  adjustments: string[];
+  cached?: boolean;
+}
+
+export interface EntryGuideStep {
+  order: number;
+  title: string;
+  description: string;
+  agency?: string;
+  duration?: string;
+}
+
+export interface EntryGuideNews {
+  date: string;
+  category: string;
+  title: string;
+  summary: string;
+  office: string;
+  url: string;
+}
+
+export interface EntryGuideNation {
+  sections: Record<string, string>;
+  offices?: { name: string; contact: string }[];
+  source?: string;
+}
+
+export interface EntryGuideDifficulty {
+  level: string;
+  reason: string;
+}
+
+export interface EntryGuideResult {
+  country_id: string;
+  item: string;
+  overview: string;
+  difficulty?: EntryGuideDifficulty | null;
+  key_risks?: string[];
+  first_actions?: string[];
+  total_duration?: string;
+  must_check?: string[];
+  steps: EntryGuideStep[];
+  customs: string[];
+  legal: string[];
+  practices: string[];
+  resources: string[];
+  data_sources?: string[];
+  nation?: EntryGuideNation | null;
+  news?: EntryGuideNews[];
+  cached?: boolean;
+}
+
 export interface PeerEntry {
   country: string;
   code: string;

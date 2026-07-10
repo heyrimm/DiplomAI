@@ -10,6 +10,8 @@ import type {
   AlarmHistoryResponse,
   Recommendation,
   ReportGenerateResponse,
+  EvaluateResult,
+  EntryGuideResult,
 } from "@/types";
 
 const BASE = "/api";
@@ -43,6 +45,28 @@ export const api = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ country_id: countryId }),
+    }),
+
+  evaluateItem: (
+    countryId: string,
+    payload: { item?: string; pdfBase64?: string; pdfName?: string },
+  ) =>
+    fetcher<EvaluateResult>("/ai/evaluate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        country_id: countryId,
+        item: payload.item,
+        pdf_base64: payload.pdfBase64,
+        pdf_name: payload.pdfName,
+      }),
+    }),
+
+  getEntryGuide: (countryId: string, item: string, sector?: string) =>
+    fetcher<EntryGuideResult>("/ai/entry-guide", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ country_id: countryId, item, sector }),
     }),
 
   getPeerComparison: (countryId: string) =>
