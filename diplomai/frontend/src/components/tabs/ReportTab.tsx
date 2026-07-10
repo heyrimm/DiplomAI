@@ -16,6 +16,7 @@ interface Props {
   recommendations: Recommendation[];
   planBaseIndex?: number;
   planSeed?: Recommendation | null;
+  onOpenGuide: (seed: { item: string; sector?: string }) => void;
 }
 
 // 계획서 기반 특수값: -1 = 국가 종합, -2 = 사업 진단 결과, >=0 = AI 추천 인덱스
@@ -40,7 +41,7 @@ const DATA_SOURCES_LINE =
   "KOICA 공공데이터(ODA 실적·사업분야별 통계), 외교부 재외동포현황(2021), 세종학당재단(문체부 산하) 수강생 현황(2025), 외교부 여행경보 API";
 
 export default function ReportTab({
-  country, budget, gaps, diplomacy, recommendations, planBaseIndex = -1, planSeed = null,
+  country, budget, gaps, diplomacy, recommendations, planBaseIndex = -1, planSeed = null, onOpenGuide,
 }: Props) {
   const [docMode, setDocMode] = useState<"report" | "plan">("report");
 
@@ -574,6 +575,19 @@ export default function ReportTab({
                   </p>
                 </div>
                 <div className="no-print" style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                  <button
+                    className="btn-accent btn-sm"
+                    onClick={() => onOpenGuide({
+                      item: plan.title,
+                      sector: planBase >= 0
+                        ? recommendations[planBase]?.sector
+                        : planBase === PLAN_BASE_EVAL
+                        ? planSeed?.sector
+                        : plan.type === "diplomacy" ? "공공외교" : "ODA",
+                    })}
+                  >
+                    이 계획으로 현지 실행 준비 →
+                  </button>
                   <button className="btn-ghost btn-sm" onClick={() => window.print()}>
                     🖨 인쇄 / PDF
                   </button>

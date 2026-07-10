@@ -1,6 +1,6 @@
 "use client";
 
-export type TabId = "global" | "overview" | "oda" | "diplomacy" | "evaluate" | "simulation" | "report";
+export type TabId = "global" | "overview" | "oda" | "diplomacy" | "evaluate" | "simulation" | "report" | "guide";
 
 const TABS: { id: TabId; label: string }[] = [
   { id: "overview",   label: "종합 개요" },
@@ -8,6 +8,7 @@ const TABS: { id: TabId; label: string }[] = [
   { id: "diplomacy",  label: "공공외교" },
   { id: "simulation", label: "시뮬레이션" },
   { id: "report",     label: "보고서" },
+  { id: "guide",      label: "실행 가이드" },
 ];
 
 interface Props {

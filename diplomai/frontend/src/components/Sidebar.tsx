@@ -30,6 +30,7 @@ const NAV_GROUPS: { stage: string; items: { id: TabId; Icon: IconType; label: st
   {
     stage: "3 · 실행 검증",
     items: [
+      { id: "guide",      Icon: Globe,          label: "실행 가이드" },
       { id: "simulation", Icon: Sliders,        label: "예산 시뮬레이션" },
     ],
   },

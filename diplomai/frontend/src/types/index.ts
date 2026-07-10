@@ -173,8 +173,9 @@ export interface TravelAlarm {
   level_label: string;
   level_color: string;
   remark: string;
-  updated_at: string;
+  updated_at: string | null;
   source: string;
+  is_fallback?: boolean;
 }
 
 export interface SafetyNotice {
@@ -291,6 +292,7 @@ export interface DiplomacyResponse {
   learners_yoy: number | null;
   diaspora_count: number | null;
   embassy_count: number | null;
+  embassy_source_type?: "api" | "fallback" | "unavailable";
   sejong_history: SejongYearCount[] | null;
   korean_studies?: KoreanStudies | null;
   kf_projects?: KfProjects | null;
