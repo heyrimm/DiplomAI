@@ -1,13 +1,8 @@
 """
 보안 미들웨어 (외부 의존성 없음)
-feature/guide-ux-security
 - 요청 제한: AI 엔드포인트(Claude 호출 비용) 분당 20회, 일반 API 분당 240회 (IP당)
   · AI 경로 = 추천/진단/진출가이드(/api/ai/*), 보고서·계획서(/api/report/*), 시뮬레이션 분석
 - 보안 응답 헤더 (X-Content-Type-Options, X-Frame-Options, Referrer-Policy)
-=======
-- 요청 제한: AI 엔드포인트(Claude 호출 비용) 분당 10회, 일반 API 분당 120회 (IP당)
-- 보안 응답 헤더
-master
 """
 
 import time
@@ -18,15 +13,10 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 
 WINDOW_SEC = 60.0
-feature/guide-ux-security
 AI_LIMIT = 20        # Claude API를 호출하는 경로 (비용·남용 방지, 시연 여유 포함)
 GENERAL_LIMIT = 240  # 그 외 API (국가 선택 시 병렬 호출이 많아 여유 있게)
 
 # Claude API를 호출하는 경로 — /api/ai/ 는 recommend·evaluate·entry-guide 전부 포함
-=======
-AI_LIMIT = 10        # Claude API를 호출하는 경로 (비용·남용 방지)
-GENERAL_LIMIT = 120  # 그 외 API
-master
 AI_PREFIXES = ("/api/ai/", "/api/report/", "/api/simulation/ai-analyze")
 
 _hits: dict[str, deque] = defaultdict(deque)
