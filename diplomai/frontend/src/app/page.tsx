@@ -34,8 +34,8 @@ const TAB_LABELS: Record<TabId, string> = {
   oda:        "ODA 분석",
   diplomacy:  "공공외교",
   evaluate:   "사업 진단",
-  simulation: "시뮬레이션",
-  report:     "종합 보고서",
+  simulation: "예산 시뮬레이션",
+  report:     "보고서·계획서",
 };
 
 export default function Home() {
@@ -50,6 +50,7 @@ export default function Home() {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [loadingRec, setLoadingRec]   = useState(false);
   const [planBaseIndex, setPlanBaseIndex] = useState(-1);
+  const [planSeed, setPlanSeed]       = useState<Recommendation | null>(null);
   const [activeTab, setActiveTab]     = useState<TabId>("overview");
   const [error, setError]             = useState<string | null>(null);
   const [loading, setLoading]         = useState(false);
@@ -66,6 +67,7 @@ export default function Home() {
     setSafetyNotices(null);
     setRecommendations([]);
     setPlanBaseIndex(-1);
+    setPlanSeed(null);
     setError(null);
     setLoading(true);
 
@@ -115,7 +117,15 @@ export default function Home() {
 
   // 추천 카드 → 계획서 생성 원클릭 연결
   const handleSelectForPlan = (index: number) => {
+    setPlanSeed(null);
     setPlanBaseIndex(index);
+    setActiveTab("report");
+  };
+
+  // 사업 진단 결과 → 계획서 생성 원클릭 연결 (진단한 내 아이템을 기반으로)
+  const handleBuildPlanFromEval = (seed: Recommendation) => {
+    setPlanBaseIndex(-1);
+    setPlanSeed(seed);
     setActiveTab("report");
   };
 
@@ -167,7 +177,7 @@ export default function Home() {
             <button className="nav-icon-btn" aria-label="도움말"><HelpCircle size={17} /></button>
             <button className="nav-icon-btn" aria-label="알림"><Bell size={17} /></button>
             <button className="nav-icon-btn" aria-label="설정"><Settings size={17} /></button>
-            <span className="nav-avatar">외</span>
+            <span className="nav-avatar">교</span>
           </div>
         </header>
 
@@ -332,7 +342,7 @@ export default function Home() {
                     <h2 className="tab-page-title">사업 타당성 진단 — {country.name}</h2>
                     <span className="tab-page-sub">내 사업 아이템을 공공데이터로 평가 · 가능성 점수 산출</span>
                   </div>
-                  <BusinessEvaluator country={country} />
+                  <BusinessEvaluator country={country} onBuildPlan={handleBuildPlanFromEval} />
                 </>
               ) : !loading && (
                 <div className="empty-state">국가를 먼저 선택하세요</div>
@@ -357,8 +367,8 @@ export default function Home() {
               {country ? (
                 <>
                   <div className="tab-page-header">
-                    <h2 className="tab-page-title">종합 보고서 — {country.name}</h2>
-                    <span className="tab-page-sub">ODA · 공공외교 · AI 추천 종합</span>
+                    <h2 className="tab-page-title">보고서 · 사업계획서 — {country.name}</h2>
+                    <span className="tab-page-sub">근거 인용 사업계획서 초안 생성 · 분석 보고서 · 인쇄/PDF</span>
                   </div>
                   <ReportTab
                     country={country}
@@ -367,6 +377,7 @@ export default function Home() {
                     diplomacy={diplomacy}
                     recommendations={recommendations}
                     planBaseIndex={planBaseIndex}
+                    planSeed={planSeed}
                   />
                 </>
               ) : !loading && (

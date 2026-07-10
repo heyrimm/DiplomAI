@@ -18,7 +18,7 @@ app = FastAPI(
 # 배포 시 ALLOWED_ORIGINS=https://<vercel-domain> 을 쉼표 구분으로 지정
 _origins = [
     o.strip()
-    for o in os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+    for o in os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:3001").split(",")
     if o.strip()
 ]
 
@@ -30,6 +30,10 @@ app.add_middleware(
     allow_headers=["Content-Type"],
 )
 
+feature/guide-ux-security
+# 요청 제한 + 보안 응답 헤더 (외부 공개 배포 대비)
+
+master
 app.add_middleware(SecurityMiddleware)
 
 app.include_router(countries.router)

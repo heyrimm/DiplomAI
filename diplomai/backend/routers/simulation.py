@@ -300,6 +300,9 @@ overall_score는 이 시나리오의 정책 효과성 점수 (0-100, 정수)."""
         "analysis":   analysis,
         "scenario":   req.adjustments,
     }
+feature/guide-ux-security
+    # 캐시 크기 상한 — 사용자 입력이 키에 포함되므로 무한 성장 방지
+master
     if len(_AI_CACHE) >= 256:
         oldest = min(_AI_CACHE, key=lambda k: _AI_CACHE[k]["ts"])
         _AI_CACHE.pop(oldest, None)

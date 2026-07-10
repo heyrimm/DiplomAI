@@ -10,13 +10,29 @@ import type { TabId } from "@/components/TabNav";
 
 type IconType = ComponentType<SVGProps<SVGSVGElement> & { size?: number }>;
 
-const NAV_ITEMS: { id: TabId; Icon: IconType; label: string }[] = [
-  { id: "overview",   Icon: LayoutDashboard, label: "종합 개요" },
-  { id: "oda",        Icon: BarChart,        label: "ODA 분석" },
-  { id: "diplomacy",  Icon: Globe,           label: "공공외교" },
-  { id: "evaluate",   Icon: Target,          label: "사업 진단" },
-  { id: "simulation", Icon: Sliders,         label: "시뮬레이션" },
-  { id: "report",     Icon: FileText,        label: "종합 보고서" },
+// 사용자 업무 흐름 단계별로 묶은 내비게이션 (진단 → 설계 → 검증)
+const NAV_GROUPS: { stage: string; items: { id: TabId; Icon: IconType; label: string }[] }[] = [
+  {
+    stage: "1 · 국가 진단",
+    items: [
+      { id: "overview",  Icon: LayoutDashboard, label: "종합 개요" },
+      { id: "oda",       Icon: BarChart,        label: "ODA 분석" },
+      { id: "diplomacy", Icon: Globe,           label: "공공외교" },
+    ],
+  },
+  {
+    stage: "2 · 사업 설계",
+    items: [
+      { id: "evaluate",  Icon: Target,          label: "사업 진단" },
+      { id: "report",    Icon: FileText,        label: "보고서·계획서" },
+    ],
+  },
+  {
+    stage: "3 · 실행 검증",
+    items: [
+      { id: "simulation", Icon: Sliders,        label: "예산 시뮬레이션" },
+    ],
+  },
 ];
 
 interface Props {
@@ -62,18 +78,22 @@ export default function Sidebar({ selectedId, activeNav, onNavChange, onHome }: 
         <span className="sb-store-chev"><ChevronDown size={15} /></span>
       </div>
 
-      {/* Primary nav */}
-      <div className="sb-section-label">분석</div>
+      {/* Primary nav — 업무 흐름 단계별 그룹 */}
       <nav>
-        {NAV_ITEMS.map((item) => (
-          <button
-            key={item.id}
-            className={`sb-nav-item${activeNav === item.id ? " active" : ""}`}
-            onClick={() => onNavChange(item.id)}
-          >
-            <span className="sb-nav-icon"><item.Icon size={17} /></span>
-            <span className="sb-nav-label">{item.label}</span>
-          </button>
+        {NAV_GROUPS.map((group) => (
+          <div key={group.stage}>
+            <div className="sb-section-label">{group.stage}</div>
+            {group.items.map((item) => (
+              <button
+                key={item.id}
+                className={`sb-nav-item${activeNav === item.id ? " active" : ""}`}
+                onClick={() => onNavChange(item.id)}
+              >
+                <span className="sb-nav-icon"><item.Icon size={17} /></span>
+                <span className="sb-nav-label">{item.label}</span>
+              </button>
+            ))}
+          </div>
         ))}
       </nav>
 
@@ -81,10 +101,10 @@ export default function Sidebar({ selectedId, activeNav, onNavChange, onHome }: 
 
       {/* User profile */}
       <div className="sb-user">
-        <span className="sb-user-avatar">외</span>
+        <span className="sb-user-avatar">교</span>
         <span className="sb-user-meta">
-          <span className="sb-user-name">외교부 분석관</span>
-          <span className="sb-user-role">KOICA · ODA 팀</span>
+          <span className="sb-user-name">국제교류 담당자</span>
+          <span className="sb-user-role">지자체 · 대학 · NGO</span>
         </span>
         <span className="sb-user-chev"><ChevronDown size={15} /></span>
       </div>
