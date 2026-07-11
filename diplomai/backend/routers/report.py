@@ -111,7 +111,7 @@ def _gaps_block(country_id: str) -> str:
     return "\n".join(
         f"- {g['sector']}: 현재 {g['current_budget']}억원, 지역평균 대비 {g['gap_percent']}% 부족 (비율 {g['ratio']})"
         for g in gaps
-    ) + "\n(출처: KOICA 지역별 지원실적 CSV 실계산 · data.go.kr)"
+    ) + "\n(출처: KOICA 협력국 통합 개발 지표 CSV 실계산 · data.go.kr)"
 
 
 def _extract_json(raw: str) -> str:
