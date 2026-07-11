@@ -61,104 +61,13 @@ SECTOR_SDG: dict[str, list[str]] = {
     "기타":           ["SDG 5", "SDG 10"],
 }
 
-# 섹터별 실제 KOICA 성공 사례 (문서화된 사업 기반)
-SUCCESS_CASES: dict[str, list[dict]] = {
-    "교육": [
-        {
-            "name": "베트남 직업교육 역량강화 (2016–2022)",
-            "detail": "직업훈련원 8개소 구축, 수혜 학생 42,000명. HDI 0.704→0.726 (+0.022) 기간 내 달성.",
-            "country": "베트남",
-            "sdg": "SDG 4",
-        },
-        {
-            "name": "캄보디아 기초교육 질 개선 (2018–2023)",
-            "detail": "교사 연수 3,200명, 교실 개보수 420개소. 초등 이수율 89%→94% 향상.",
-            "country": "캄보디아",
-            "sdg": "SDG 4",
-        },
-    ],
-    "보건": [
-        {
-            "name": "에티오피아 모자보건 강화 (2017–2023)",
-            "detail": "보건소 62개소 지원, 의료인력 1,800명 훈련. 영아사망률 50→43(‰) 감소.",
-            "country": "에티오피아",
-            "sdg": "SDG 3",
-        },
-        {
-            "name": "미얀마 지역사회 보건체계 강화 (2015–2021)",
-            "detail": "40개 마을 보건시스템 구축, 수혜 인구 120,000명. SDG 3·6 동시 기여.",
-            "country": "미얀마",
-            "sdg": "SDG 3·6",
-        },
-    ],
-    "농림수산": [
-        {
-            "name": "필리핀 농촌소득증대 (2019–2024)",
-            "detail": "스마트팜 시범단지 12개소, 농가소득 평균 32% 증가. 빈곤 농가 2,400호 지원.",
-            "country": "필리핀",
-            "sdg": "SDG 2",
-        },
-        {
-            "name": "라오스 농업기술 현대화 (2018–2023)",
-            "detail": "종자·비료 지원 + 농업기술학교 2개소. 수확량 평균 28% 증가.",
-            "country": "라오스",
-            "sdg": "SDG 2·15",
-        },
-    ],
-    "기술·환경·에너지": [
-        {
-            "name": "인도네시아 신재생에너지 보급 (2018–2023)",
-            "detail": "도서지역 태양광 130개소, 전력 접근 인구 68,000명 확대. SDG 7·13 기여.",
-            "country": "인도네시아",
-            "sdg": "SDG 7",
-        },
-        {
-            "name": "몽골 스마트시티 기반 조성 (2020–2025)",
-            "detail": "ICT 인프라 구축, 전자정부 서비스 도입. 인터넷 사용률 68%→79% 향상.",
-            "country": "몽골",
-            "sdg": "SDG 9",
-        },
-    ],
-    "공공행정": [
-        {
-            "name": "르완다 전자정부 역량강화 (2017–2022)",
-            "detail": "행정 디지털화 프로그램, 공무원 3,500명 교육. 정부 효율성 지수 개선.",
-            "country": "르완다",
-            "sdg": "SDG 16",
-        },
-        {
-            "name": "우즈베키스탄 지방행정 현대화 (2019–2024)",
-            "detail": "12개 지방 행정 역량강화. 부패인식지수 25→31점 개선.",
-            "country": "우즈베키스탄",
-            "sdg": "SDG 16",
-        },
-    ],
-    "긴급구호": [
-        {
-            "name": "시리아 인근 레바논 인도적 지원 (2020–2023)",
-            "detail": "난민 38,000명 식량·의료 지원. 긴급 WASH 시설 42개소 설치.",
-            "country": "레바논",
-            "sdg": "SDG 1·11",
-        },
-    ],
-    "기타": [
-        {
-            "name": "방글라데시 젠더·직업교육 통합 (2018–2023)",
-            "detail": "여성 직업훈련 참여자 18,000명. 여성 취업률 28%→41% 향상. SDG 5·8.",
-            "country": "방글라데시",
-            "sdg": "SDG 5",
-        },
-    ],
-}
-
-
 # ─────────────────────────────────────────────
 # 엔드포인트
 # ─────────────────────────────────────────────
 
 @router.get("/{country_id:path}/base")
 def get_simulation_base(country_id: str):
-    """시뮬레이션 초기값 — 섹터 예산, 계수, 성공사례 반환."""
+    """시뮬레이션 초기값 — 섹터 예산, 계수 반환."""
     if COUNTRY_META.get(country_id) is None:
         raise HTTPException(status_code=404, detail=f"Country not found: {country_id}")
 
@@ -176,10 +85,6 @@ def get_simulation_base(country_id: str):
             if total * w > 0
         ]
 
-    # 현재 예산 최다 섹터로 성공사례 결정
-    top_sector = sectors[0]["sector"] if sectors else "교육"
-    cases = SUCCESS_CASES.get(top_sector, SUCCESS_CASES["교육"])
-
     return {
         "country_id":     country_id,
         "total_억원":     total,
@@ -191,7 +96,6 @@ def get_simulation_base(country_id: str):
         "hdi_coeff":      HDI_COEFF,
         "beneficiary_coeff": BENEFICIARY_COEFF,
         "sector_sdg":     SECTOR_SDG,
-        "success_cases":  cases,
         "source":         "KOICA 협력국 통합 개발 지표 (data.go.kr)",
     }
 
@@ -271,7 +175,6 @@ async def ai_scenario_analyze(req: ScenarioRequest):
   "strategy": "이 시나리오의 전략적 근거 — 왜 이 섹터를 조정했는가 (2-3문장)",
   "expected_outcomes": "주요 기대 성과와 SDG 기여 (2-3문장)",
   "risks": "잠재 리스크와 보완 필요 사항 (2문장)",
-  "case_study": "유사 국가·사업의 실제 성공 사례 1개 (국가명·사업명·성과 포함, 2문장)",
   "overall_score": 75,
   "recommendation": "핵심 정책 권고 1문장"
 }}

@@ -32,7 +32,6 @@ const SECTOR_SDG: Record<string, string[]> = {
 };
 
 interface BaseSector { sector: string; budget: number; projects: number; }
-interface SuccessCase { name: string; detail: string; country: string; sdg: string; }
 interface BaseData {
   country_id: string;
   total_억원: number;
@@ -41,14 +40,12 @@ interface BaseData {
   population: number;
   gdp_per_capita: number;
   sectors: BaseSector[];
-  success_cases: SuccessCase[];
   source: string;
 }
 interface AiAnalysis {
   strategy: string;
   expected_outcomes: string;
   risks: string;
-  case_study: string;
   overall_score: number;
   recommendation: string;
 }
@@ -388,7 +385,6 @@ export default function SimulationTab({ countryId }: Props) {
                 { label: "전략적 근거",   key: "strategy",          icon: "◈" },
                 { label: "기대 성과",     key: "expected_outcomes", icon: "◉" },
                 { label: "리스크",        key: "risks",             icon: "⚠" },
-                { label: "유사 성공 사례", key: "case_study",       icon: "✓" },
               ].map(({ label, key, icon }) => (
                 <div key={key} style={{
                   padding: "14px 16px",
@@ -409,36 +405,10 @@ export default function SimulationTab({ countryId }: Props) {
         </div>
       )}
 
-      {/* ── 유사 성공사례 (KOICA 사업 기반) ── */}
-      <div className="card">
-        <div className="card-body">
-          <div className="card-head" style={{ marginBottom: 14 }}>
-            <div>
-              <p className="card-title">유사 성공 사례</p>
-              <p className="card-meta">KOICA 실제 사업 기록 기반</p>
-            </div>
-          </div>
-          <div className="stack">
-            {(base.success_cases || []).map((c, i) => (
-              <div key={i} className="sim-case">
-                <span className="sim-case-icon">✓</span>
-                <div style={{ flex: 1 }}>
-                  <p className="sim-case-name">{c.name}</p>
-                  <p className="sim-case-detail">{c.detail}</p>
-                  <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
-                    <span className="badge badge-neutral" style={{ fontSize: 11.5 }}>{c.country}</span>
-                    <span className="badge badge-blue"    style={{ fontSize: 11.5 }}>{c.sdg}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-          <p className="sim-disclaimer" style={{ marginTop: 14 }}>
-            ⓘ 본 시뮬레이션은 KOICA 협력국 통합 개발 지표(data.go.kr) 기반 추정치이며,
-            실제 정책 효과를 보장하지 않습니다. AI 분석은 정책 참고용입니다.
-          </p>
-        </div>
-      </div>
+      <p className="sim-disclaimer">
+        ⓘ 본 시뮬레이션은 KOICA 협력국 통합 개발 지표(data.go.kr) 기반 추정치이며,
+        실제 정책 효과를 보장하지 않습니다. AI 분석은 정책 참고용입니다.
+      </p>
 
     </div>
   );
