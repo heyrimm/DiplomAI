@@ -25,7 +25,8 @@ export default function Landing({ onEnter }: Props) {
     <div className="lp">
       <header className="lp-nav">
         <div className="lp-brand">
-          <span className="lp-brand-icon">D</span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/diplomai-mark.png" alt="DiplomAI" className="lp-brand-img" />
           <span className="lp-brand-name">DiplomAI</span>
         </div>
         <button className="lp-nav-btn" onClick={() => onEnter("browse")}>시작하기</button>

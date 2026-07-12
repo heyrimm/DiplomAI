@@ -6,6 +6,7 @@ import type {
   Recommendation, TravelAlarm, SafetyNoticesResponse, AlarmHistoryItem,
 } from "@/types";
 import HorizontalBarChart from "@/components/HorizontalBarChart";
+import OverviewInfographics from "@/components/OverviewInfographics";
 import CitedText from "@/components/CitedText";
 
 interface Props {
@@ -45,65 +46,8 @@ export default function OverviewTab({
 
   return (
     <div className="stack">
-      {/* KPI row */}
-      <div className="grid-3">
-        <div className="kpi-card">
-          <span className="kpi-label">리스크 스코어</span>
-          <span className="kpi-value">{riskScore}<span className="kpi-unit">/100</span></span>
-          <span className="kpi-trend neutral">HDI 기반 산출</span>
-        </div>
-        <div className="kpi-card">
-          <span className="kpi-label">KOICA 연간 지원</span>
-          <span className="kpi-value">{Math.round(totalBudget).toLocaleString()}<span className="kpi-unit">억원</span></span>
-          {yoyPct != null && (
-            <span className={`kpi-trend ${yoyPct >= 0 ? "up" : "down"}`}>
-              {yoyPct >= 0 ? "↑" : "↓"} 전년 대비 {yoyPct > 0 ? "+" : ""}{yoyPct}%
-            </span>
-          )}
-        </div>
-        <div className="kpi-card">
-          <span className="kpi-label">HDI 지수</span>
-          <span className="kpi-value">{country.hdi}</span>
-          <span className="kpi-trend neutral">{country.region}</span>
-        </div>
-      </div>
-
-      {/* Travel alarm — 해당 국가 */}
-      {alarm && alarm.level !== "0" && (
-        <div className={`alarm-badge ${ALARM_CLS[alarm.level_color] ?? "alarm-gray"}`}
-          style={{ padding: "11px 16px", borderRadius: "var(--r-lg)", fontSize: 13.5 }}>
-          <span style={{ fontSize: 16 }}>✈</span>
-          <div>
-            <p style={{ fontWeight: 600, color: "inherit" }}>
-              외교부 여행경보 — {alarm.level_label}
-            </p>
-            {alarm.remark && (
-              <p style={{ fontSize: 12.5, opacity: .8, marginTop: 2 }}>{alarm.remark}</p>
-            )}
-          </div>
-          <span style={{ marginLeft: "auto", fontSize: 12, opacity: .65 }}>{alarm.source}</span>
-        </div>
-      )}
-
-      {/* Gap banner */}
-      {gaps && gaps.gaps.length > 0 && (
-        <div className="gap-banner">
-          <span className="gap-banner-icon">⚠</span>
-          <div>
-            <p className="gap-banner-title">
-              ODA 사각지대 감지 — {gaps.gaps.map((g) => g.sector).join(" · ")}
-            </p>
-            <p className="gap-banner-desc">
-              유사 소득 수준 국가 대비 해당 분야 ODA 비중이 낮습니다. 신규 사업 가능성이 높습니다.
-            </p>
-            <div className="gap-tags">
-              {gaps.gaps.map((g) => (
-                <span key={g.sector} className="gap-tag">{g.sector}</span>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* 데이터로 보는 국가 — 인포그래픽 그리드 */}
+      <OverviewInfographics country={country} budget={budget} gaps={gaps} alarm={alarm} />
 
       {/* 2-col: budget chart + safety notices */}
       <div className="grid-2">

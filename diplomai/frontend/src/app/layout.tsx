@@ -2,8 +2,24 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "DiplomAI — ODA 분석 및 AI 사업 추천",
-  description: "외교부·KOICA 공공데이터 기반 국가별 ODA 분석 플랫폼",
+  metadataBase: new URL("https://diplom-ai.com"),
+  title: "DiplomAI — 공공데이터 기반 사업 설계 AI 코파일럿",
+  description: "내 사업에 맞는 진출 국가 추천 → 타당성 진단 → 사업계획서까지. 외교부·KOICA·KF 공공데이터 + AI.",
+  openGraph: {
+    title: "DiplomAI — 공공데이터 기반 사업 설계 AI 코파일럿",
+    description: "내 사업에 맞는 진출 국가 추천 → 타당성 진단 → 사업계획서까지. 외교부·KOICA·KF 공공데이터 + AI.",
+    url: "https://diplom-ai.com",
+    siteName: "DiplomAI",
+    locale: "ko_KR",
+    type: "website",
+    images: [{ url: "/og-image.png", width: 1280, height: 853, alt: "DiplomAI — 대한민국 공공외교·ODA" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "DiplomAI — 공공데이터 기반 사업 설계 AI 코파일럿",
+    description: "진출 국가 추천 → 타당성 진단 → 사업계획서. 공공데이터 + AI.",
+    images: ["/og-image.png"],
+  },
 };
 
 export default function RootLayout({

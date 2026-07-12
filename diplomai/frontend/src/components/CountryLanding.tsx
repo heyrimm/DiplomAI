@@ -84,32 +84,6 @@ export default function CountryLanding({ onSelect }: Props) {
 
   return (
     <div className="landing">
-      {/* ── 검색 히어로 ── */}
-      <div className="landing-search">
-        <div className="ls-input-wrap">
-          <span className="ls-search-icon"><Search size={18} /></span>
-          <input
-            className="ls-input"
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="국가 검색 (예: 베트남, 케냐, 인도네시아…)"
-          />
-          {query && (
-            <button className="ls-clear" onClick={() => setQuery("")} aria-label="지우기">✕</button>
-          )}
-        </div>
-        {popular.length > 0 && (
-          <div className="ls-popular">
-            <span className="ls-popular-label">인기 국가</span>
-            {popular.map((c) => (
-              <button key={c.id} className="ls-popular-item" onClick={() => onSelect(c.id)}>
-                {c.name}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
 
       <div className="landing-head">
         <span className="landing-eyebrow">
@@ -117,10 +91,6 @@ export default function CountryLanding({ onSelect }: Props) {
           국가 선택
         </span>
         <h2 className="landing-title">국가를 선택해 사업 설계를 시작하세요</h2>
-        <p className="landing-desc">
-          지자체·대학·NGO의 국제교류 담당자를 위한 공공데이터 기반 사업 설계 도구입니다.
-          국가를 고르면 <strong>진단 → 사업계획서 초안 → 현지 실행 준비</strong>까지 이어집니다.
-        </p>
       </div>
 
       {countries === null ? (
@@ -173,8 +143,7 @@ export default function CountryLanding({ onSelect }: Props) {
           )}
 
           <div className="trend-header">
-            <span className="trend-title">TOP TREND</span>
-            <span className="trend-sub">KOICA 지원 실적 순</span>
+            <span className="trend-title">KOICA 지원 실적 순</span>
           </div>
           {groups.map((g) => (
             <section key={g.key} className="continent-group">

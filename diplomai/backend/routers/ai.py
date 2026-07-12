@@ -19,7 +19,7 @@ from services.koica_indicators import (
 )
 from services.kotra_api import fetch_nation_brief, fetch_trade_news, fetch_nation_market, COUNTRY_ISO2_MAP
 from services.worldbank import fetch_indicators
-from services.hwp import extract_text as extract_hwp_text
+from services.docs import prepare_upload
 
 router = APIRouter(prefix="/api/ai", tags=["ai"])
 
@@ -312,18 +312,23 @@ def _build_eval_prompt(
 async def evaluate_item(req: EvaluateRequest):
     country_id = req.country_id
     item = (req.item or "").strip()
-    pdf_b64 = (req.pdf_base64 or "").strip()
-    has_pdf = bool(pdf_b64)
-    if not item and not has_pdf:
+    raw_b64 = (req.pdf_base64 or "").strip()
+    if not item and not raw_b64:
         raise HTTPException(status_code=400, detail="사업 아이템 텍스트 또는 PDF를 입력하세요.")
     # base64 ~ 원본의 4/3 배. 32MB 원본 ≈ 43MB base64 제한
-    if has_pdf and len(pdf_b64) > 43_000_000:
-        raise HTTPException(status_code=413, detail="PDF가 너무 큽니다 (32MB 이하로 올려주세요).")
+    if raw_b64 and len(raw_b64) > 43_000_000:
+        raise HTTPException(status_code=413, detail="파일이 너무 큽니다 (32MB 이하로 올려주세요).")
     meta = COUNTRY_META.get(country_id)
     if meta is None:
         raise HTTPException(status_code=404, detail=f"Country not found: {country_id}")
 
-    src_key = f"pdf:{req.pdf_name}:{len(pdf_b64)}" if has_pdf else item.lower()
+    # PDF(≤100p)는 문서블록, 대용량 PDF·HWP는 텍스트 추출
+    pdf_b64, extra_text = prepare_upload(raw_b64, req.pdf_name)
+    if extra_text:
+        item = (item + "\n\n[첨부 자료 내용]\n" + extra_text).strip()
+    has_pdf = bool(pdf_b64)
+
+    src_key = f"pdf:{req.pdf_name}:{len(raw_b64)}" if raw_b64 else item.lower()
     cache_key = f"{country_id}::{src_key}"
     cached = _EVAL_CACHE.get(cache_key)
     if cached and (time.time() - cached["ts"]) < _CACHE_TTL:
@@ -643,26 +648,17 @@ async def recommend_countries(req: CountryRecommendRequest):
     # 파일: file_* 우선, 없으면 pdf_*(하위호환)
     file_b64 = (req.file_base64 or req.pdf_base64 or "").strip()
     file_name = (req.file_name or req.pdf_name or "")
-    is_hwp = file_name.lower().endswith(".hwp")
-    is_pdf = bool(file_b64) and not is_hwp  # pdf/기타는 PDF 문서블록으로
     if not item and not file_b64:
         raise HTTPException(status_code=400, detail="사업 아이템 설명 또는 자료를 입력하세요.")
     if file_b64 and len(file_b64) > 43_000_000:
         raise HTTPException(status_code=413, detail="파일이 너무 큽니다 (32MB 이하).")
 
-    # HWP는 서버에서 텍스트 추출해 item에 합침 (Claude는 PDF만 문서로 인식)
-    if is_hwp:
-        import base64 as _b64
-        try:
-            text = extract_hwp_text(_b64.b64decode(file_b64))
-        except Exception:
-            text = ""
-        if text:
-            item = (item + "\n\n[첨부 사업계획서(HWP) 내용]\n" + text).strip()
-        elif not item:
-            raise HTTPException(status_code=422, detail="HWP에서 텍스트를 추출하지 못했습니다. 내용을 직접 입력해 주세요.")
-
-    pdf_b64 = file_b64 if is_pdf else ""
+    # PDF(≤100p)는 문서블록, HWP·대용량 PDF는 서버에서 텍스트 추출
+    pdf_b64, extra_text = prepare_upload(file_b64, file_name)
+    if extra_text:
+        item = (item + "\n\n[첨부 자료 내용]\n" + extra_text).strip()
+    elif file_b64 and not pdf_b64 and not item:
+        raise HTTPException(status_code=422, detail="파일에서 텍스트를 추출하지 못했습니다. 내용을 직접 입력해 주세요.")
     has_pdf = bool(pdf_b64)
 
     src_key = f"file:{file_name}:{len(file_b64)}" if file_b64 else item.lower()
@@ -803,17 +799,21 @@ async def _build_brief_prompt(country_id: str, meta: dict, item: str, has_pdf: b
 async def market_brief(req: MarketBriefRequest):
     country_id = req.country_id
     item = (req.item or "").strip()
-    pdf_b64 = (req.pdf_base64 or "").strip()
-    has_pdf = bool(pdf_b64)
-    if not item and not has_pdf:
+    raw_b64 = (req.pdf_base64 or "").strip()
+    if not item and not raw_b64:
         raise HTTPException(status_code=400, detail="사업 아이템 또는 자료(PDF)를 입력하세요.")
-    if has_pdf and len(pdf_b64) > 43_000_000:
-        raise HTTPException(status_code=413, detail="PDF가 너무 큽니다 (32MB 이하).")
+    if raw_b64 and len(raw_b64) > 43_000_000:
+        raise HTTPException(status_code=413, detail="파일이 너무 큽니다 (32MB 이하).")
     meta = COUNTRY_META.get(country_id)
     if meta is None:
         raise HTTPException(status_code=404, detail=f"Country not found: {country_id}")
 
-    src_key = f"{country_id}::" + (f"pdf:{req.pdf_name}:{len(pdf_b64)}" if has_pdf else item.lower())
+    pdf_b64, extra_text = prepare_upload(raw_b64, req.pdf_name)
+    if extra_text:
+        item = (item + "\n\n[첨부 자료 내용]\n" + extra_text).strip()
+    has_pdf = bool(pdf_b64)
+
+    src_key = f"{country_id}::" + (f"pdf:{req.pdf_name}:{len(raw_b64)}" if raw_b64 else item.lower())
     cached = _BRIEF_CACHE.get(src_key)
     if cached and (time.time() - cached["ts"]) < _CACHE_TTL:
         return {**cached["data"], "cached": True}

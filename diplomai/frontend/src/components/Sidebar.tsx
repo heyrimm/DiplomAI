@@ -50,7 +50,8 @@ export default function Sidebar({ selectedId, activeNav, onNavChange, onHome }: 
     <aside className="side-rail">
       {/* Brand → 국가 선택 화면으로 */}
       <button className="sb-brand" onClick={onHome} title="국가 선택 화면으로">
-        <span className="sb-brand-icon">D</span>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/diplomai-mark.png" alt="DiplomAI" className="sb-brand-img" />
         <span className="sb-brand-name">DiplomAI</span>
       </button>
 

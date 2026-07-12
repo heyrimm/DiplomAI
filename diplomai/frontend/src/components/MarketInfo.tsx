@@ -34,11 +34,29 @@ function fmtIndicator(value: number, unit: string): string {
   return `${value}${unit === "/5" ? " /5" : ""}`;
 }
 
-/** 얇은 단색 스파크라인 (단일 시리즈 → 범례 불필요) */
-function Sparkline({ points }: { points: MarketTrendPoint[] }) {
+/** 점들을 부드러운 곡선(Catmull-Rom → 3차 베지어)으로 잇는 path */
+function smoothLine(pts: number[][]): string {
+  if (pts.length < 2) return "";
+  let d = `M${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1] ?? pts[i];
+    const p1 = pts[i];
+    const p2 = pts[i + 1];
+    const p3 = pts[i + 2] ?? p2;
+    const c1x = p1[0] + (p2[0] - p0[0]) / 6;
+    const c1y = p1[1] + (p2[1] - p0[1]) / 6;
+    const c2x = p2[0] - (p3[0] - p1[0]) / 6;
+    const c2y = p2[1] - (p3[1] - p1[1]) / 6;
+    d += `C${c1x.toFixed(1)},${c1y.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
+  }
+  return d;
+}
+
+/** 부드러운 곡선 스파크라인 + 소프트 그라데이션 (단일 시리즈 → 범례 불필요) */
+function Sparkline({ points, gid }: { points: MarketTrendPoint[]; gid: string }) {
   const vals = points.map((p) => num(p.value)).filter((v): v is number => v !== null);
   if (vals.length < 2) return null;
-  const W = 160, H = 44, pad = 4;
+  const W = 180, H = 60, pad = 6;
   const min = Math.min(...vals), max = Math.max(...vals);
   const span = max - min || 1;
   const step = (W - pad * 2) / (vals.length - 1);
@@ -46,17 +64,25 @@ function Sparkline({ points }: { points: MarketTrendPoint[] }) {
     pad + i * step,
     pad + (H - pad * 2) * (1 - (v - min) / span),
   ]);
-  const line = xy.map(([x, y], i) => `${i ? "L" : "M"}${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
-  const area = `${line} L${xy[xy.length - 1][0].toFixed(1)},${H - pad} L${xy[0][0].toFixed(1)},${H - pad} Z`;
+  const line = smoothLine(xy);
+  const [lx, ly] = xy[xy.length - 1];
+  const area = `${line} L${lx.toFixed(1)},${H} L${xy[0][0].toFixed(1)},${H} Z`;
   const first = vals[0], last = vals[vals.length - 1];
   const delta = last - first;
   const pct = first ? (delta / Math.abs(first)) * 100 : 0;
   return (
     <div className="mkt-spark">
       <svg viewBox={`0 0 ${W} ${H}`} className="mkt-spark-svg" preserveAspectRatio="none">
-        <path d={area} className="mkt-spark-area" />
+        <defs>
+          <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.28" />
+            <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <path d={area} fill={`url(#${gid})`} stroke="none" />
         <path d={line} className="mkt-spark-line" />
-        <circle cx={xy[xy.length - 1][0]} cy={xy[xy.length - 1][1]} r="2.5" className="mkt-spark-dot" />
+        <circle cx={lx} cy={ly} r="4" className="mkt-spark-halo" />
+        <circle cx={lx} cy={ly} r="2.6" className="mkt-spark-dot" />
       </svg>
       <span className={`mkt-spark-delta ${delta >= 0 ? "up" : "down"}`}>
         {delta >= 0 ? "▲" : "▼"} {Math.abs(pct).toFixed(1)}%
@@ -172,7 +198,7 @@ export default function MarketInfo({ country }: Props) {
           <div className="card-body">
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 4 }}>
               <p className="card-title">「{brief.item}」 맞춤 시장 브리핑</p>
-              <span className="mkt-fit">시장 적합도 {brief.fit_score}<span style={{ fontSize: 10, fontWeight: 500 }}>/100</span></span>
+              <span className="mkt-fit">시장 적합도 <span className="mkt-fit-num">{brief.fit_score}</span><span style={{ fontSize: 11, fontWeight: 500 }}>/100</span></span>
             </div>
             {brief.summary && <p className="mkt-brief-text" style={{ marginBottom: 12 }}>{brief.summary}</p>}
             <div className="grid-3">
@@ -218,7 +244,7 @@ export default function MarketInfo({ country }: Props) {
                     <span className="mkt-tile-label">{t.label}</span>
                     <span className="mkt-spark-latest">{last.value}<span className="mkt-spark-year"> ({last.year})</span></span>
                   </div>
-                  <Sparkline points={t.points} />
+                  <Sparkline points={t.points} gid={`spark-${t.key}`} />
                 </div>
               </div>
             );

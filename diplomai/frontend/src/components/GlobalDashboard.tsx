@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import GlobalMap from "@/components/GlobalMap";
+import { flagSrc } from "@/lib/flags";
 
 interface KoicaEntry  { name: string; total_만달러: number; }
 interface SejongEntry { name: string; learners: number; }
@@ -117,56 +119,12 @@ export default function GlobalDashboard({ onSelectCountry }: Props) {
   const alarmTotal = alarm?.levels.reduce((s, l) => s + l.count, 0) ?? 0;
 
   return (
-    <div style={{ maxWidth: 880, margin: "0 auto", padding: "28px 0 56px", display: "flex", flexDirection: "column", gap: 20 }}>
+    <div style={{ width: "100%", padding: "28px 0 56px", display: "flex", flexDirection: "column", gap: 20 }}>
 
-      {/* ── Hero 밴드 ── */}
-      <div style={{
-        background: "var(--surface)",
-        border: "1px solid var(--line)",
-        borderRadius: "var(--r-xl)",
-        padding: "32px 36px",
-        display: "grid",
-        gridTemplateColumns: "1fr 1px 1fr 1px 1fr",
-        gap: 0,
-        boxShadow: "var(--shadow-sm)",
-      }}>
-        {[
-          {
-            label: "KOICA 지원 국가",
-            value: summary?.kpis.koica_countries,
-            unit: "개국",
-            sub: "누적 지원실적 기준",
-          },
-          {
-            label: "세종학당 운영국",
-            value: summary?.kpis.sejong_countries,
-            unit: "개국",
-            sub: "2025년 기준",
-          },
-          {
-            label: "전 세계 한국어 학습자",
-            value: summary ? Math.round(summary.kpis.total_learners / 10000).toLocaleString() : undefined,
-            unit: "만명",
-            sub: "세종학당 수강생 합계",
-          },
-        ].map((stat, i) => (
-          <>
-            {i > 0 && (
-              <div key={`div-${i}`} style={{ background: "var(--line)", alignSelf: "stretch" }} />
-            )}
-            <div key={stat.label} style={{ padding: "0 28px", textAlign: i === 1 ? "center" : i === 2 ? "right" : "left" }}>
-              <p style={{ fontSize: 10.5, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--faint)", marginBottom: 10 }}>
-                {stat.label}
-              </p>
-              <p style={{ fontSize: 38, fontWeight: 800, color: "var(--ink)", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
-                {stat.value ?? "—"}
-                <span style={{ fontSize: 14, fontWeight: 400, color: "var(--muted)", marginLeft: 5 }}>{stat.unit}</span>
-              </p>
-              <p style={{ fontSize: 11.5, color: "var(--faint)", marginTop: 8 }}>{stat.sub}</p>
-            </div>
-          </>
-        ))}
-      </div>
+      {/* ── 세계지도 + 핵심 통계 (통합) ── */}
+      <div className="card"><div className="card-body" style={{ padding: "28px 32px" }}>
+        <GlobalMap onSelectCountry={onSelectCountry} />
+      </div></div>
 
       {/* ── 공공외교 공백 국가 (핵심 차별 기능) ── */}
       {gapsData && (
@@ -177,7 +135,7 @@ export default function GlobalDashboard({ onSelectCountry }: Props) {
         }}>
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 6 }}>
             <div>
-              <p style={{ fontSize: 13.5, fontWeight: 700, color: "var(--ink)" }}>
+              <p style={{ fontSize: 27, fontWeight: 800, letterSpacing: "-.02em", color: "var(--ink)" }}>
                 ⚠ 공공외교 공백 국가 <span style={{ color: "#b45309" }}>{gapsData.total_detected}개국 감지</span>
               </p>
               <p style={{ fontSize: 11, color: "var(--faint)", marginTop: 3 }}>
@@ -194,30 +152,33 @@ export default function GlobalDashboard({ onSelectCountry }: Props) {
             {gapsData.gaps.map((g) => (
               <button
                 key={g.country_id}
+                className="gd-gap-card"
                 onClick={() => onSelectCountry?.(g.country_id)}
                 style={{
+                  display: "block", width: "100%",
                   textAlign: "left", cursor: "pointer",
                   padding: "11px 14px", borderRadius: "var(--r-md)",
                   border: "1px solid rgba(180,83,9,.18)",
                   background: "rgba(180,83,9,.04)",
-                  transition: "background .15s ease",
                 }}
               >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
-                  <span style={{ fontSize: 13.5, fontWeight: 700, color: "var(--ink)" }}>
-                    {g.country_id}
-                    <span style={{ fontSize: 11, fontWeight: 400, color: "var(--faint)", marginLeft: 6 }}>{g.region}</span>
-                  </span>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: "#b45309", flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>
+                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "3px 8px" }}>
+                  {flagSrc(g.country_id) && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={flagSrc(g.country_id)!} alt="" style={{ width: 20, height: 14, borderRadius: 3, objectFit: "cover", border: "1px solid var(--line)" }} />
+                  )}
+                  <span style={{ fontSize: 13.5, fontWeight: 700, color: "var(--ink)" }}>{g.country_id}</span>
+                  <span style={{ fontSize: 11, fontWeight: 400, color: "var(--faint)" }}>{g.region}</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: "#b45309", fontVariantNumeric: "tabular-nums" }}>
                     ODA 연 {Math.round(g.oda_budget)}억
                   </span>
+                  <span style={{ fontSize: 11.5, color: "var(--ink-soft)" }}>
+                    {g.kf_total === 0
+                      ? "KF 공공외교 사업 이력 없음"
+                      : `KF 사업 ${g.kf_last_year}년 이후 중단 (누적 ${g.kf_total}건)`}
+                  </span>
+                  <span style={{ fontSize: 11.5, color: "var(--accent)" }}>분석 보기 →</span>
                 </div>
-                <p style={{ fontSize: 11.5, color: "var(--ink-soft)", marginTop: 4 }}>
-                  {g.kf_total === 0
-                    ? "KF 공공외교 사업 이력 없음"
-                    : `KF 사업 ${g.kf_last_year}년 이후 중단 (누적 ${g.kf_total}건)`}
-                  <span style={{ color: "var(--accent)", marginLeft: 6 }}>분석 보기 →</span>
-                </p>
               </button>
             ))}
           </div>
@@ -290,67 +251,7 @@ export default function GlobalDashboard({ onSelectCountry }: Props) {
         </div>
       </div>
 
-      {/* ── 여행경보 현황 ── */}
-      {alarm && alarm.levels.length > 0 && (
-        <div style={{
-          background: "var(--surface)", border: "1px solid var(--line)",
-          borderRadius: "var(--r-xl)", padding: "22px 24px",
-          boxShadow: "var(--shadow-sm)",
-        }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
-            <div>
-              <p style={{ fontSize: 13.5, fontWeight: 700, color: "var(--ink)" }}>전 세계 외교부 여행경보 현황</p>
-              <p style={{ fontSize: 11, color: "var(--faint)", marginTop: 3 }}>경보 발령 {alarmTotal}개국 · {alarm.source}</p>
-            </div>
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10 }}>
-            {alarm.levels.map((lv) => {
-              const st = LEVEL_STYLE[lv.level] ?? LEVEL_STYLE["1"];
-              const isExpanded = showAllLevel === lv.level;
-              const visible = isExpanded ? lv.countries : lv.countries.slice(0, 6);
-              return (
-                <div key={lv.level} style={{
-                  padding: "14px 14px",
-                  border: `1px solid ${st.border}`,
-                  borderRadius: "var(--r-lg)",
-                  background: st.bg,
-                }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-                    <span style={{ width: 6, height: 6, borderRadius: 99, background: st.dot, flexShrink: 0 }} />
-                    <span style={{ fontSize: 11.5, fontWeight: 700, color: st.text }}>{lv.label}</span>
-                    <span style={{ marginLeft: "auto", fontSize: 18, fontWeight: 800, color: st.text, fontVariantNumeric: "tabular-nums" }}>
-                      {lv.count}
-                    </span>
-                  </div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "3px 4px" }}>
-                    {visible.map((c) => (
-                      <span key={c.country_iso} style={{
-                        fontSize: 10.5, color: st.text, opacity: .8,
-                        background: "rgba(0,0,0,.05)", padding: "1px 5px",
-                        borderRadius: 3, whiteSpace: "nowrap",
-                      }}>
-                        {c.country_eng}
-                      </span>
-                    ))}
-                    {lv.countries.length > 6 && (
-                      <button
-                        onClick={() => setShowAll(isExpanded ? null : lv.level)}
-                        style={{
-                          fontSize: 10.5, color: st.text, opacity: .65,
-                          background: "none", border: "none", cursor: "pointer",
-                          padding: "1px 3px", textDecoration: "underline",
-                        }}
-                      >
-                        {isExpanded ? "접기" : `+${lv.countries.length - 6}개`}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+      {/* 여행경보 현황은 세계지도 우측 하단으로 이동됨 (GlobalMap) */}
 
       {/* ── 안내 푸터 ── */}
       <p style={{ textAlign: "center", fontSize: 12.5, color: "var(--faint)" }}>

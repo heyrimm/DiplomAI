@@ -1,5 +1,10 @@
 /* 국가 id(한국어) → public/flags 파일명 (파일명이 제각각이라 명시 매핑) */
 const FLAG_FILES: Record<string, string> = {
+  // 공공외교 공백 국가 등 추가 (flagcdn)
+  키르기스스탄: "kg.png", 과테말라: "gt.png", 모잠비크: "mz.png",
+  파키스탄: "pk.png", 나이지리아: "ng.png", 엘살바도르: "sv.png",
+  카메룬: "cm.png", 수단: "sd.png", 팔레스타인: "ps.png",
+  남수단: "ss.png", 튀니지: "tn.png",
   베트남: "vietnam.png",
   이라크: "iraq.png",
   필리핀: "philippines.png",

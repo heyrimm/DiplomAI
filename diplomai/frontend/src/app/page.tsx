@@ -256,46 +256,6 @@ export default function Home() {
                 alarm={alarm}
               />
 
-              <div className="metric-ribbon">
-                <div className="metric-cell">
-                  <span className="m-label">KOICA 연간 지원</span>
-                  <span className="m-value">
-                    {totalBudget > 0 ? `${Math.round(totalBudget)}억` : "—"}
-                  </span>
-                  {yoyPct != null && (
-                    <span className={`m-sub ${yoyPct >= 0 ? "up" : "down"}`}>
-                      {yoyPct >= 0 ? "↑" : "↓"} 전년 대비 {yoyPct > 0 ? "+" : ""}{yoyPct}%
-                    </span>
-                  )}
-                </div>
-
-                <div className="metric-cell">
-                  <span className="m-label">리스크 스코어</span>
-                  <span className="m-value">{riskScore ?? "—"}<span style={{fontSize:13,fontWeight:400,color:"var(--muted)"}}>/100</span></span>
-                  <span className="m-sub neutral">HDI 기반 산출</span>
-                </div>
-
-                {diplomacy?.kf_index != null ? (
-                  <div className="metric-cell">
-                    <span className="m-label">공공외교 지수</span>
-                    <span className="m-value">{diplomacy.kf_index}<span style={{fontSize:13,fontWeight:400,color:"var(--muted)"}}>/100</span></span>
-                    <span className="m-sub neutral">{diplomacy.rank_in_region}</span>
-                  </div>
-                ) : (
-                  <div className="metric-cell">
-                    <span className="m-label">공공외교 지수</span>
-                    <span className="m-value">—</span>
-                    <span className="m-sub neutral">데이터 없음</span>
-                  </div>
-                )}
-
-                <div className="metric-cell">
-                  <span className="m-label">HDI</span>
-                  <span className="m-value">{country.hdi}</span>
-                  <span className="m-sub neutral">{country.income_level}</span>
-                </div>
-              </div>
-
               <div className="content-area">
                 <OverviewTab
                   country={country}
