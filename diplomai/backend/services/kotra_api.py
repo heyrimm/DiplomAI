@@ -97,7 +97,8 @@ _NL_RE = re.compile(r"\n{3,}")
 
 
 def _get_key() -> str | None:
-    return os.getenv("DATA_GO_KR_API_KEY")
+    # KOTRA 전용 키 우선(외교부 키와 별개 계정), 없으면 공용 키로 폴백
+    return os.getenv("KOTRA_API_KEY") or os.getenv("DATA_GO_KR_API_KEY")
 
 
 def _clean(text: str | None) -> str:
@@ -204,6 +205,99 @@ async def fetch_nation_brief(country_id: str, per_field: int = 900) -> dict | No
         "offices": offices,
         "source": "KOTRA 국가정보 (data.go.kr)",
     }
+
+
+def _as_list(container, key) -> list:
+    lst = (container or {}).get(key) or []
+    return [lst] if isinstance(lst, dict) else (lst if isinstance(lst, list) else [])
+
+
+async def fetch_nation_market(country_id: str) -> dict | None:
+    """KOTRA 국가정보 원문을 '시장정보' 구조 데이터로 정리.
+
+    반환: 추이(명목GDP·환율·물가) / 진출 한국기업 / 대한국 수입규제 /
+          산업단지 / 생활정보 / 대사관·한국기관. KOTRA 미제공·키 미반영이면 None.
+    """
+    iso2 = COUNTRY_ISO2_MAP.get(country_id)
+    if not iso2:
+        return None
+    item = await _fetch_nation_raw(iso2)
+    if not item:
+        return None
+
+    def series(list_key, item_key):
+        out = []
+        for e in _as_list(item.get(list_key), item_key):
+            y, v = _clean(e.get("critYear")), _clean(e.get("inditValds"))
+            if y and v:
+                out.append({"year": y, "value": v})
+        return sorted(out, key=lambda x: x["year"])
+
+    companies = []
+    for c in _as_list(item.get("korCompList"), "korComp"):
+        name = _clean(c.get("korCompNm"))
+        if name:
+            companies.append({
+                "name": name,
+                "year": _clean(c.get("acplcAdvncYear")),
+                "industry": _trim(_clean(c.get("indlnCntnt")), 60),
+                "form": _clean(c.get("acplcAdvncFormCntnt")),
+            })
+
+    regs = []
+    for r in _as_list(item.get("korImprtReglList"), "korImprtRegl"):
+        it = _clean(r.get("cmdltName"))
+        if it:
+            regs.append({
+                "item": it,
+                "hscode": _clean(r.get("hscdCn")),
+                "content": _trim(_clean(r.get("reglCn")), 180),
+            })
+
+    complexes = []
+    for c in _as_list(item.get("irsttList"), "irstt"):
+        name = _clean(c.get("irsttNm"))
+        if name:
+            complexes.append({
+                "name": name,
+                "addr": _trim(_clean(c.get("irsttAddrCntnt")), 120),
+                "area": _clean(c.get("irsttAreaCntnt")),
+                "rent": _trim(_clean(c.get("irsttHrChrgeCntnt")), 120),
+            })
+
+    offices = []
+    for o in _as_list(item.get("korGvrnInsttList"), "korGvrnInstt"):
+        name = _clean(o.get("insttNm"))
+        if name:
+            offices.append({
+                "name": name,
+                "contact": _trim(_clean(o.get("insttTelno")) + " " + _clean(o.get("insttAddrCntnt")), 160),
+            })
+
+    living = {
+        "religion": _clean(item.get("relgnNm")),
+        "culture":  _trim(_clean(item.get("clturCntnt")), 400),
+        "water":    _trim(_clean(item.get("drwtCntnt")), 220),
+        "card":     _trim(_clean(item.get("crtcdUsageCntnt")), 220),
+        "taxi":     _trim(_clean(item.get("taxiUsageInfoCntnt")), 220),
+    }
+    living = {k: v for k, v in living.items() if v}
+
+    result = {
+        "trends": {
+            "gdp": series("nmgdpList", "nmgdp"),
+            "fx": series("ehgtList", "ehgt"),
+            "inflation": series("inflRateList", "inflRate"),
+        },
+        "korean_companies": companies[:12],
+        "import_regulations": regs[:10],
+        "industrial_complexes": complexes[:8],
+        "living": living or None,
+        "offices": offices[:6],
+        "reg_dt": _clean(item.get("regDt")),
+        "source": "KOTRA 국가정보 (data.go.kr)",
+    }
+    return result
 
 
 async def fetch_trade_news(country_id: str, limit: int = 5) -> list[dict]:

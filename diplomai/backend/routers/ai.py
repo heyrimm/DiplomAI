@@ -9,7 +9,7 @@ from pydantic import BaseModel
 import anthropic
 
 from data.country_meta import COUNTRY_META
-from services.koica_csv import get_country_latest, get_country_history
+from services.koica_csv import get_country_latest, get_country_history, get_all_countries_ranked
 from services.public_diplomacy import get_sejong, get_diaspora
 from services.kf_data import get_kf_projects, get_korean_studies
 from services.koica_indicators import (
@@ -17,7 +17,9 @@ from services.koica_indicators import (
     get_regional_sector_proportions,
     get_sdg_goals,
 )
-from services.kotra_api import fetch_nation_brief, fetch_trade_news
+from services.kotra_api import fetch_nation_brief, fetch_trade_news, fetch_nation_market, COUNTRY_ISO2_MAP
+from services.worldbank import fetch_indicators
+from services.hwp import extract_text as extract_hwp_text
 
 router = APIRouter(prefix="/api/ai", tags=["ai"])
 
@@ -562,4 +564,302 @@ async def get_entry_guide(req: EntryGuideRequest):
         "news": kotra_news,
     }
     _GUIDE_CACHE[cache_key] = {"data": result, "ts": time.time()}
+    return result
+
+
+# ══════════════════════════════════════════════════════════════
+#  사업 → 진출 국가 추천 (사용자 사업 입력/자료 → 적합 국가 Top N)
+# ══════════════════════════════════════════════════════════════
+
+_REC_CACHE: dict[str, dict] = {}
+
+
+class CountryRecommendRequest(BaseModel):
+    item: str | None = None          # 사업 아이템 설명
+    file_base64: str | None = None   # 관련 자료 (PDF 또는 HWP, base64)
+    file_name: str | None = None
+    # 하위호환
+    pdf_base64: str | None = None
+    pdf_name: str | None = None
+
+
+def _candidate_countries(limit: int = 30) -> list[dict]:
+    """KOICA 실적순 후보 국가 + 핵심 신호(지역·소득·HDI·주요 ODA 분야)."""
+    out: list[dict] = []
+    for cid in get_all_countries_ranked(limit=limit):
+        meta = COUNTRY_META.get(cid)
+        if not meta:
+            continue
+        props = get_sector_proportions(cid) or {}
+        top = [s for s, _ in sorted(props.items(), key=lambda x: -x[1])[:2]]
+        out.append({
+            "id": cid,
+            "region": meta.get("region", ""),
+            "income": meta.get("income_level", ""),
+            "hdi": meta.get("hdi", ""),
+            "top_sectors": ", ".join(top) if top else "-",
+        })
+    return out
+
+
+def _build_recommend_prompt(item: str, has_pdf: bool, candidates: list[dict]) -> str:
+    rows = "\n".join(
+        f"- {c['id']} | {c['region']} | {c['income']} | HDI {c['hdi']} | 주요 ODA: {c['top_sectors']}"
+        for c in candidates
+    )
+    biz = (
+        "첨부된 PDF 자료를 사업 정보로 분석하세요."
+        + (f"\n추가 설명: \"{item}\"" if item else "")
+        if has_pdf else f'"{item}"'
+    )
+    return f"""당신은 대한민국 공공외교·ODA 진출 전략 컨설턴트입니다.
+사용자의 사업 정보를 보고, 아래 후보 국가 중 진출에 가장 적합한 국가 4곳을 추천하세요.
+
+## 사용자 사업
+{biz}
+
+## 후보 국가 (KOICA 협력국 · 이 목록 안에서만 선택)
+{rows}
+
+## 판단 기준
+- 사업 도메인과 해당국 개발 수요·ODA 분야의 정합성
+- 소득수준·HDI로 본 개발 니즈, 진입 여지(해당 분야가 약한 곳일수록 기회)
+
+## 출력 형식 (JSON 배열만, 마크다운 없이)
+[
+  {{
+    "country_id": "후보 목록의 id 중 하나 (정확히 일치)",
+    "fit_score": 0~100 정수,
+    "reason": "이 국가가 적합한 근거 (100자 이내, 데이터 기반)",
+    "angle": "추천 사업 방향 한 줄 (60자 이내)"
+  }}
+]
+정확히 4건, fit_score 내림차순. country_id는 반드시 후보 목록에서 고르세요. JSON 배열만 출력."""
+
+
+@router.post("/recommend-countries")
+async def recommend_countries(req: CountryRecommendRequest):
+    item = (req.item or "").strip()
+    # 파일: file_* 우선, 없으면 pdf_*(하위호환)
+    file_b64 = (req.file_base64 or req.pdf_base64 or "").strip()
+    file_name = (req.file_name or req.pdf_name or "")
+    is_hwp = file_name.lower().endswith(".hwp")
+    is_pdf = bool(file_b64) and not is_hwp  # pdf/기타는 PDF 문서블록으로
+    if not item and not file_b64:
+        raise HTTPException(status_code=400, detail="사업 아이템 설명 또는 자료를 입력하세요.")
+    if file_b64 and len(file_b64) > 43_000_000:
+        raise HTTPException(status_code=413, detail="파일이 너무 큽니다 (32MB 이하).")
+
+    # HWP는 서버에서 텍스트 추출해 item에 합침 (Claude는 PDF만 문서로 인식)
+    if is_hwp:
+        import base64 as _b64
+        try:
+            text = extract_hwp_text(_b64.b64decode(file_b64))
+        except Exception:
+            text = ""
+        if text:
+            item = (item + "\n\n[첨부 사업계획서(HWP) 내용]\n" + text).strip()
+        elif not item:
+            raise HTTPException(status_code=422, detail="HWP에서 텍스트를 추출하지 못했습니다. 내용을 직접 입력해 주세요.")
+
+    pdf_b64 = file_b64 if is_pdf else ""
+    has_pdf = bool(pdf_b64)
+
+    src_key = f"file:{file_name}:{len(file_b64)}" if file_b64 else item.lower()
+    cached = _REC_CACHE.get(src_key)
+    if cached and (time.time() - cached["ts"]) < _CACHE_TTL:
+        return {**cached["data"], "cached": True}
+
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key or api_key.startswith("your_"):
+        raise HTTPException(status_code=503, detail="ANTHROPIC_API_KEY가 설정되지 않았습니다.")
+
+    candidates = _candidate_countries(limit=30)
+    valid_ids = {c["id"] for c in candidates}
+    prompt = _build_recommend_prompt(item, has_pdf, candidates)
+
+    content: list = []
+    if has_pdf:
+        content.append({
+            "type": "document",
+            "source": {"type": "base64", "media_type": "application/pdf", "data": pdf_b64},
+        })
+    content.append({"type": "text", "text": prompt})
+
+    try:
+        client = anthropic.Anthropic(api_key=api_key)
+        message = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=1500,
+            messages=[{"role": "user", "content": content}],
+        )
+        raw = message.content[0].text.strip()
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:].strip()
+        if not raw.startswith("["):
+            m = re.search(r"\[.*\]", raw, re.DOTALL)
+            raw = m.group(0) if m else raw
+        recs = json.loads(raw)
+        if not isinstance(recs, list):
+            recs = []
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=502, detail="AI 응답 파싱 실패")
+    except anthropic.APIError as e:
+        raise HTTPException(status_code=502, detail=f"Claude API 오류: {e}")
+
+    out = []
+    for r in recs:
+        cid = r.get("country_id", "")
+        if cid not in valid_ids:
+            continue
+        meta = COUNTRY_META.get(cid, {})
+        out.append({
+            "country_id": cid,
+            "country_name": cid,
+            "region": meta.get("region", ""),
+            "income_level": meta.get("income_level", ""),
+            "fit_score": r.get("fit_score", 0),
+            "reason": r.get("reason", ""),
+            "angle": r.get("angle", ""),
+        })
+    out.sort(key=lambda x: x.get("fit_score", 0), reverse=True)
+
+    result = {
+        "item": (f"📄 {file_name}" if file_name else (item[:60] if item else "첨부 자료")),
+        "source": "file" if file_b64 else "text",
+        "recommendations": out,
+    }
+    _REC_CACHE[src_key] = {"data": result, "ts": time.time()}
+    return result
+
+
+# ══════════════════════════════════════════════════════════════
+#  사업 맞춤 시장 브리핑 (사업 아이템/자료 + 국가 시장데이터 → 맞춤 분석)
+# ══════════════════════════════════════════════════════════════
+
+_BRIEF_CACHE: dict[str, dict] = {}
+
+
+class MarketBriefRequest(BaseModel):
+    country_id: str
+    item: str | None = None
+    pdf_base64: str | None = None
+    pdf_name: str | None = None
+
+
+async def _build_brief_prompt(country_id: str, meta: dict, item: str, has_pdf: bool) -> str:
+    iso2 = COUNTRY_ISO2_MAP.get(country_id)
+    indicators = await fetch_indicators(iso2) if iso2 else []
+    market = await fetch_nation_market(country_id)
+
+    ind_str = " · ".join(f"{i['label']} {i['value']}{i['unit']}({i['year']})" for i in indicators) or "데이터 없음"
+
+    mkt_lines = []
+    if market:
+        for key, label in (("gdp", "명목GDP"), ("fx", "환율"), ("inflation", "물가상승률")):
+            pts = market["trends"].get(key) or []
+            if pts:
+                mkt_lines.append(f"- {label} 추이: " + ", ".join(f"{p['year']} {p['value']}" for p in pts[-4:]))
+        if market["korean_companies"]:
+            mkt_lines.append("- 진출 한국기업 " + str(len(market["korean_companies"])) + "곳: "
+                             + ", ".join(c["name"] for c in market["korean_companies"][:6]))
+        if market["import_regulations"]:
+            mkt_lines.append("- 대한국 수입규제 품목: " + ", ".join(r["item"] for r in market["import_regulations"][:6]))
+        if market["industrial_complexes"]:
+            c = market["industrial_complexes"][0]
+            mkt_lines.append(f"- 산업단지 예: {c['name']} (임차료 {c.get('rent','-')})")
+        if market["living"]:
+            liv = market["living"]
+            mkt_lines.append("- 생활: " + " / ".join(f"{k} {v[:40]}" for k, v in liv.items()))
+    mkt_str = "\n".join(mkt_lines) or "KOTRA 국가정보 미연동(키 반영 대기)"
+
+    biz = ("첨부된 PDF 자료를 사업 정보로 분석하세요." + (f"\n추가 설명: \"{item}\"" if item else "")) if has_pdf else f'"{item}"'
+
+    return f"""당신은 해외 진출 시장분석 컨설턴트입니다.
+사용자의 사업을 아래 {country_id} 시장데이터에 비추어 '맞춤 진출 브리핑'을 작성하세요.
+
+## 사용자 사업
+{biz}
+
+## {country_id} 시장 데이터
+- 지역 {meta.get('region','')} · 소득 {meta.get('income_level','')} · HDI {meta.get('hdi','')} · 1인당GDP USD {meta.get('gdp_per_capita',0):,}
+- World Bank 지표: {ind_str}
+{mkt_str}
+
+## 출력 (JSON 객체만, 마크다운 없이)
+{{
+  "fit_score": 0~100 정수(이 사업의 해당 시장 적합도),
+  "summary": "이 사업 관점의 시장 총평 (80자 이내)",
+  "favorable": ["이 사업에 유리한 시장 요인 2~3개, 데이터 근거, 각 60자 이내"],
+  "risks": ["진입 리스크·규제·주의점 2~3개, 각 60자 이내"],
+  "entry_tips": ["구체적 진입 팁 2~3개, 각 60자 이내"]
+}}
+위 데이터에 없는 수치는 지어내지 마세요. JSON 객체만 출력."""
+
+
+@router.post("/market-brief")
+async def market_brief(req: MarketBriefRequest):
+    country_id = req.country_id
+    item = (req.item or "").strip()
+    pdf_b64 = (req.pdf_base64 or "").strip()
+    has_pdf = bool(pdf_b64)
+    if not item and not has_pdf:
+        raise HTTPException(status_code=400, detail="사업 아이템 또는 자료(PDF)를 입력하세요.")
+    if has_pdf and len(pdf_b64) > 43_000_000:
+        raise HTTPException(status_code=413, detail="PDF가 너무 큽니다 (32MB 이하).")
+    meta = COUNTRY_META.get(country_id)
+    if meta is None:
+        raise HTTPException(status_code=404, detail=f"Country not found: {country_id}")
+
+    src_key = f"{country_id}::" + (f"pdf:{req.pdf_name}:{len(pdf_b64)}" if has_pdf else item.lower())
+    cached = _BRIEF_CACHE.get(src_key)
+    if cached and (time.time() - cached["ts"]) < _CACHE_TTL:
+        return {**cached["data"], "cached": True}
+
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key or api_key.startswith("your_"):
+        raise HTTPException(status_code=503, detail="ANTHROPIC_API_KEY가 설정되지 않았습니다.")
+
+    prompt = await _build_brief_prompt(country_id, meta, item, has_pdf)
+    content: list = []
+    if has_pdf:
+        content.append({
+            "type": "document",
+            "source": {"type": "base64", "media_type": "application/pdf", "data": pdf_b64},
+        })
+    content.append({"type": "text", "text": prompt})
+
+    try:
+        client = anthropic.Anthropic(api_key=api_key)
+        message = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=1200,
+            messages=[{"role": "user", "content": content}],
+        )
+        raw = message.content[0].text.strip()
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:].strip()
+        if not raw.startswith("{"):
+            m = re.search(r"\{.*\}", raw, re.DOTALL)
+            raw = m.group(0) if m else raw
+        analysis = json.loads(raw)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=502, detail="AI 응답 파싱 실패")
+    except anthropic.APIError as e:
+        raise HTTPException(status_code=502, detail=f"Claude API 오류: {e}")
+
+    result = {
+        "country_id": country_id,
+        "item": item or (f"📄 {req.pdf_name}" if req.pdf_name else "📄 첨부 자료"),
+        "fit_score": analysis.get("fit_score", 0),
+        "summary": analysis.get("summary", ""),
+        "favorable": analysis.get("favorable", []),
+        "risks": analysis.get("risks", []),
+        "entry_tips": analysis.get("entry_tips", []),
+    }
+    _BRIEF_CACHE[src_key] = {"data": result, "ts": time.time()}
     return result

@@ -103,6 +103,31 @@ export const Sliders = (p: IconProps) => (
     <line x1="17" y1="16" x2="23" y2="16" />
   </Svg>
 );
+export const Upload = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+    <polyline points="17 8 12 3 7 8" />
+    <line x1="12" y1="3" x2="12" y2="15" />
+  </Svg>
+);
+export const Grid = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="3" y="3" width="7" height="7" rx="1" />
+    <rect x="14" y="3" width="7" height="7" rx="1" />
+    <rect x="14" y="14" width="7" height="7" rx="1" />
+    <rect x="3" y="14" width="7" height="7" rx="1" />
+  </Svg>
+);
+export const XIcon = (p: IconProps) => (
+  <Svg {...p}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></Svg>
+);
+export const Store = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M3 9l1.5-5.5h15L21 9" />
+    <path d="M4 9v10a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9" />
+    <path d="M9 20v-5h6v5" />
+  </Svg>
+);
 export const Target = (p: IconProps) => (
   <Svg {...p}>
     <circle cx="12" cy="12" r="10" />

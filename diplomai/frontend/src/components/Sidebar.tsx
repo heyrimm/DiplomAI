@@ -2,7 +2,7 @@
 
 import { flagSrc } from "@/lib/flags";
 import {
-  ChevronDown, LayoutDashboard, BarChart, Globe, Sliders, FileText, TrendingUp, Target,
+  ChevronDown, LayoutDashboard, BarChart, Globe, Sliders, FileText, TrendingUp, Target, Store,
 } from "@/components/icons";
 import type { ComponentType, SVGProps } from "react";
 import type { Country } from "@/types";
@@ -16,6 +16,7 @@ const NAV_GROUPS: { stage: string; items: { id: TabId; Icon: IconType; label: st
     stage: "1 · 국가 진단",
     items: [
       { id: "overview",  Icon: LayoutDashboard, label: "종합 개요" },
+      { id: "market",    Icon: Store,           label: "시장정보" },
       { id: "oda",       Icon: BarChart,        label: "ODA 분석" },
       { id: "diplomacy", Icon: Globe,           label: "공공외교" },
     ],

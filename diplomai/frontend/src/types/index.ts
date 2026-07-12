@@ -88,6 +88,64 @@ export interface EvaluateResult {
   cached?: boolean;
 }
 
+export interface MarketIndicator {
+  label: string;
+  value: number;
+  unit: string;
+  year: string;
+  kind: "int" | "pct" | "float";
+  source: string;
+}
+export interface MarketTrendPoint { year: string; value: string; }
+export interface MarketCompany { name: string; year: string; industry: string; form: string; }
+export interface MarketReg { item: string; hscode: string; content: string; }
+export interface MarketComplex { name: string; addr: string; area: string; rent: string; }
+export interface MarketOffice { name: string; contact: string; }
+export interface MarketLiving {
+  religion?: string; culture?: string; water?: string; card?: string; taxi?: string;
+}
+export interface MarketInfoResult {
+  country_id: string;
+  iso2: string | null;
+  indicators: MarketIndicator[];
+  trends: { gdp: MarketTrendPoint[]; fx: MarketTrendPoint[]; inflation: MarketTrendPoint[] };
+  korean_companies: MarketCompany[];
+  import_regulations: MarketReg[];
+  industrial_complexes: MarketComplex[];
+  living: MarketLiving | null;
+  offices: MarketOffice[];
+  kotra_available: boolean;
+  sources: string[];
+}
+
+export interface MarketBriefResult {
+  country_id: string;
+  item: string;
+  fit_score: number;
+  summary: string;
+  favorable: string[];
+  risks: string[];
+  entry_tips: string[];
+  cached?: boolean;
+}
+
+export interface CountryRecommendation {
+  country_id: string;
+  country_name: string;
+  region: string;
+  income_level: string;
+  fit_score: number;
+  reason: string;
+  angle: string;
+}
+
+export interface CountryRecommendResult {
+  item: string;
+  source?: "text" | "pdf";
+  recommendations: CountryRecommendation[];
+  cached?: boolean;
+}
+
 export interface EntryGuideStep {
   order: number;
   title: string;

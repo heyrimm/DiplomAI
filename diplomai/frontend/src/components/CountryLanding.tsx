@@ -58,6 +58,7 @@ export default function CountryLanding({ onSelect }: Props) {
 
   /* KOICA 지원 실적 순위 (목록이 실적 내림차순) */
   const rankOf = new Map((countries ?? []).map((c, i) => [c.id, i + 1]));
+  const countryById = new Map((countries ?? []).map((c) => [c.id, c]));
 
   const q = query.trim().toLowerCase();
   const matches = (c: Country) =>
@@ -110,64 +111,6 @@ export default function CountryLanding({ onSelect }: Props) {
         )}
       </div>
 
-      {/* ── 공공외교 공백 국가 — '어디서 시작할지' 첫 화면 제안 ── */}
-      {gaps && gaps.gaps.length > 0 && (
-        <div style={{
-          marginTop: 18,
-          background: "rgba(180,83,9,.05)",
-          border: "1px solid rgba(180,83,9,.22)",
-          borderRadius: "var(--r-lg, 14px)",
-          padding: "14px 18px",
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>
-              ⚠ 공공외교 공백 국가 <span style={{ color: "#b45309" }}>{gaps.total_detected}개국</span>
-            </span>
-            <span style={{ fontSize: 11.5, color: "var(--faint)" }}>
-              ODA는 활발하나 공공외교(KF) 활동이 없거나 끊긴 곳 — 여기서 시작해 보세요
-            </span>
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {(gapsExpanded ? gaps.gaps : gaps.gaps.slice(0, 6)).map((g) => (
-              <button
-                key={g.country_id}
-                onClick={() => onSelect(g.country_id)}
-                style={{
-                  display: "flex", alignItems: "center", gap: 8, cursor: "pointer",
-                  padding: "7px 12px", borderRadius: 99,
-                  border: "1px solid rgba(180,83,9,.28)", background: "var(--surface)",
-                }}
-              >
-                {flagSrc(g.country_id) && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={flagSrc(g.country_id)!} alt="" style={{ width: 16, height: 12, borderRadius: 2, objectFit: "cover" }} />
-                )}
-                <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{g.country_id}</span>
-                <span style={{ fontSize: 11, color: "#b45309", fontVariantNumeric: "tabular-nums" }}>
-                  ODA 연 {Math.round(g.oda_budget)}억
-                </span>
-              </button>
-            ))}
-          </div>
-
-          {gaps.gaps.length > 6 && (
-            <button
-              onClick={() => setGapsExpanded((v) => !v)}
-              style={{
-                width: "100%", marginTop: 10, padding: "8px 0", cursor: "pointer",
-                background: "transparent", border: "none",
-                borderTop: "1px dashed rgba(180,83,9,.25)",
-                fontSize: 12, fontWeight: 600, color: "#b45309",
-              }}
-            >
-              {gapsExpanded
-                ? "접기 ▴"
-                : `전체 ${gaps.total_detected}개국 펼쳐 보기  +${gaps.gaps.length - 6} ▾`}
-            </button>
-          )}
-        </div>
-      )}
-
       <div className="landing-head">
         <span className="landing-eyebrow">
           <span className="landing-eyebrow-dot" />
@@ -189,6 +132,46 @@ export default function CountryLanding({ onSelect }: Props) {
         <div className="empty-state">&ldquo;{query}&rdquo; 검색 결과가 없습니다</div>
       ) : (
         <div className="landing-groups">
+          {/* ── 공공외교 공백 국가 (TOP TREND와 동일한 카드 그리드 폼) ── */}
+          {!q && gaps && gaps.gaps.length > 0 && (
+            <section className="continent-group">
+              <div className="trend-header">
+                <span className="trend-title trend-title-gap">공공외교 공백 국가</span>
+                <span className="trend-sub">ODA는 활발하나 KF 공공외교가 없거나 끊긴 곳 · {gaps.total_detected}개국</span>
+              </div>
+              <div className="country-grid">
+                {(gapsExpanded ? gaps.gaps : gaps.gaps.slice(0, 5)).map((g) => {
+                  const c = countryById.get(g.country_id);
+                  return (
+                    <button
+                      key={g.country_id}
+                      className="country-card gap-card"
+                      onClick={() => onSelect(g.country_id)}
+                    >
+                      <span className="cc-rank cc-rank-gap">⚠</span>
+                      <span className="cc-icon">
+                        {flagSrc(g.country_id) ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={flagSrc(g.country_id)!} alt={`${c?.name ?? g.country_id} 국기`} className="cc-icon-img" />
+                        ) : (
+                          <span className="cc-icon-fallback">🏳️</span>
+                        )}
+                      </span>
+                      <span className="cc-name">{c?.name ?? g.country_id}</span>
+                      <span className="cc-meta gap-meta">ODA 연 {Math.round(g.oda_budget)}억 · 공백</span>
+                      <span className="cc-cta">선택</span>
+                    </button>
+                  );
+                })}
+              </div>
+              {gaps.gaps.length > 5 && (
+                <button className="gap-more" onClick={() => setGapsExpanded((v) => !v)}>
+                  {gapsExpanded ? "접기 ▴" : `전체 ${gaps.total_detected}개국 보기  +${gaps.gaps.length - 5} ▾`}
+                </button>
+              )}
+            </section>
+          )}
+
           <div className="trend-header">
             <span className="trend-title">TOP TREND</span>
             <span className="trend-sub">KOICA 지원 실적 순</span>

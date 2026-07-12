@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from routers import countries, oda, ai, diplomacy, safety, simulation, global_stats, report
+from routers import countries, oda, ai, diplomacy, safety, simulation, global_stats, report, market
 from security import SecurityMiddleware
 
 app = FastAPI(
@@ -30,10 +30,7 @@ app.add_middleware(
     allow_headers=["Content-Type"],
 )
 
-feature/guide-ux-security
 # 요청 제한 + 보안 응답 헤더 (외부 공개 배포 대비)
-
-master
 app.add_middleware(SecurityMiddleware)
 
 app.include_router(countries.router)
@@ -44,6 +41,7 @@ app.include_router(safety.router)
 app.include_router(simulation.router)
 app.include_router(global_stats.router)
 app.include_router(report.router)
+app.include_router(market.router)
 
 
 @app.get("/")

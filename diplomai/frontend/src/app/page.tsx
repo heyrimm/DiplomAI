@@ -26,11 +26,15 @@ import AiRecommendationCards from "@/components/AiRecommendationCards";
 import CountryLanding from "@/components/CountryLanding";
 import GlobalDashboard from "@/components/GlobalDashboard";
 import BusinessEvaluator from "@/components/BusinessEvaluator";
+import MarketInfo from "@/components/MarketInfo";
+import Landing from "@/components/Landing";
+import CountryRecommender from "@/components/CountryRecommender";
 import { ChevronLeft, ChevronRight, HelpCircle, Bell, Settings } from "@/components/icons";
 
 const TAB_LABELS: Record<TabId, string> = {
   global:     "글로벌 현황",
   overview:   "종합 개요",
+  market:     "시장정보",
   oda:        "ODA 분석",
   diplomacy:  "공공외교",
   evaluate:   "사업 진단",
@@ -54,6 +58,8 @@ export default function Home() {
   const [activeTab, setActiveTab]     = useState<TabId>("overview");
   const [error, setError]             = useState<string | null>(null);
   const [loading, setLoading]         = useState(false);
+  const [entered, setEntered]         = useState(false);
+  const [recommendMode, setRecommendMode] = useState(false);
 
   const loadCountryData = useCallback(async (id: string | null) => {
     if (!id) return;
@@ -133,6 +139,18 @@ export default function Home() {
   const yoyPct      = budget?.yoy_pct ?? null;
   const riskScore   = country ? Math.round((1 - country.hdi) * 100) : null;
 
+  // 최초 진입 랜딩 — 클릭 시 앱 진입 (recommend: 국가 추천 인테이크 / browse: 국가 목록)
+  if (!entered) {
+    return (
+      <Landing
+        onEnter={(mode) => {
+          setEntered(true);
+          setRecommendMode(mode === "recommend");
+        }}
+      />
+    );
+  }
+
   return (
     <div className="app-shell">
       {/* ── Side rail ── */}
@@ -142,7 +160,7 @@ export default function Home() {
         activeNav={activeTab}
         onCountryChange={handleCountrySelect}
         onNavChange={(id) => setActiveTab(id as TabId)}
-        onHome={() => { setSelectedId(null); setActiveTab("overview"); }}
+        onHome={() => { setSelectedId(null); setActiveTab("overview"); setRecommendMode(false); }}
       />
 
       {/* ── Main area ── */}
@@ -208,9 +226,16 @@ export default function Home() {
             </div>
           )}
 
-          {/* 국가 미선택 → 대륙별 국가 선택 화면 (최상위 진입 화면) */}
+          {/* 국가 미선택 → (추천 모드) 사업 입력 기반 국가 추천 / (기본) 국가 목록 */}
           {activeTab !== "global" && !selectedId && !loading && (
-            <CountryLanding onSelect={handleCountrySelect} />
+            recommendMode ? (
+              <CountryRecommender
+                onSelect={handleCountrySelect}
+                onBrowse={() => setRecommendMode(false)}
+              />
+            ) : (
+              <CountryLanding onSelect={handleCountrySelect} />
+            )
           )}
 
           {/* 로딩 상태 */}
@@ -290,6 +315,23 @@ export default function Home() {
                 countryName={country.name}
               />
             </>
+          )}
+
+          {/* ── 시장정보 탭 ── */}
+          {activeTab === "market" && (
+            <div className="content-area">
+              {country ? (
+                <>
+                  <div className="tab-page-header">
+                    <h2 className="tab-page-title">시장정보 — {country.name}</h2>
+                    <span className="tab-page-sub">World Bank 거시지표 · KOTRA 국가정보 · 사업 맞춤 브리핑</span>
+                  </div>
+                  <MarketInfo country={country} />
+                </>
+              ) : !loading && (
+                <div className="empty-state">국가를 먼저 선택하세요</div>
+              )}
+            </div>
           )}
 
           {/* ── ODA 탭 ── */}

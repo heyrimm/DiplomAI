@@ -12,6 +12,9 @@ import type {
   ReportGenerateResponse,
   EvaluateResult,
   EntryGuideResult,
+  CountryRecommendResult,
+  MarketInfoResult,
+  MarketBriefResult,
 } from "@/types";
 
 const BASE = "/api";
@@ -62,11 +65,40 @@ export const api = {
       }),
     }),
 
+  recommendCountries: (payload: { item?: string; fileBase64?: string; fileName?: string }) =>
+    fetcher<CountryRecommendResult>("/ai/recommend-countries", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        item: payload.item,
+        file_base64: payload.fileBase64,
+        file_name: payload.fileName,
+      }),
+    }),
+
   getEntryGuide: (countryId: string, item: string, sector?: string) =>
     fetcher<EntryGuideResult>("/ai/entry-guide", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ country_id: countryId, item, sector }),
+    }),
+
+  getMarketInfo: (countryId: string) =>
+    fetcher<MarketInfoResult>(`/market/${encodeURIComponent(countryId)}`),
+
+  getMarketBrief: (
+    countryId: string,
+    payload: { item?: string; pdfBase64?: string; pdfName?: string },
+  ) =>
+    fetcher<MarketBriefResult>("/ai/market-brief", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        country_id: countryId,
+        item: payload.item,
+        pdf_base64: payload.pdfBase64,
+        pdf_name: payload.pdfName,
+      }),
     }),
 
   getPeerComparison: (countryId: string) =>

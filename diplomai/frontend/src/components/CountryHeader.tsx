@@ -1,5 +1,6 @@
 "use client";
 
+import { flagSrc } from "@/lib/flags";
 import type { Country, TravelAlarm } from "@/types";
 
 interface Props {
@@ -47,7 +48,13 @@ export default function CountryHeader({ country, riskCount, recommendCount, alar
           ODA 수원국 분석 · {today}
         </span>
 
-        <h1 className="hero-title">{country.name}</h1>
+        <div className="hero-title-row">
+          <h1 className="hero-title">{country.name}</h1>
+          {flagSrc(country.id) && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={flagSrc(country.id)!} alt={`${country.name} 국기`} className="hero-title-flag" />
+          )}
+        </div>
 
         <p className="hero-sub">
           {country.name_en}&nbsp;&nbsp;·&nbsp;&nbsp;{country.region}
