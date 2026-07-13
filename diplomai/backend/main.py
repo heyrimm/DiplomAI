@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from routers import countries, oda, ai, diplomacy, safety, simulation, global_stats, report, market
+from routers import countries, oda, ai, diplomacy, safety, simulation, global_stats, report, market, images
 from security import SecurityMiddleware
 
 app = FastAPI(
@@ -42,6 +42,7 @@ app.include_router(simulation.router)
 app.include_router(global_stats.router)
 app.include_router(report.router)
 app.include_router(market.router)
+app.include_router(images.router)
 
 
 @app.get("/")

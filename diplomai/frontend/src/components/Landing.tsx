@@ -56,7 +56,7 @@ export default function Landing({ onEnter }: Props) {
           <h1 className="lp-title">
             당신의 사업,<br />어디로 진출할까요?
           </h1>
-          <p className="lp-sub">본인의 사업을 진출할 수 있는 최고의 국가를 추천해드립니다</p>
+          <p className="lp-sub">ODA · 공공외교 지원 · 무역 데이터를 분석해<br />최적의 국가를 추천해주는 서비스</p>
           <div className="lp-cta">
             <button className="lp-btn-primary" onClick={onEnter}>시작하기</button>
             <button className="lp-btn-ghost" onClick={onEnter}>둘러보기</button>

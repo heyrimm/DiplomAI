@@ -144,3 +144,9 @@ export const FileText = (p: IconProps) => (
     <polyline points="10 9 9 9 8 9" />
   </Svg>
 );
+export const Compass = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="12" cy="12" r="10" />
+    <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
+  </Svg>
+);

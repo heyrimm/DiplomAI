@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { api } from "@/lib/api";
 import CitedText from "@/components/CitedText";
+import { FileText, Upload, XIcon, Compass } from "@/components/icons";
 import type { Country, EvaluateResult, EntryGuideResult, Recommendation } from "@/types";
 
 /** File → base64 (data URL 접두어 제거) */
@@ -43,13 +44,13 @@ export default function BusinessEvaluator({ country, onBuildPlan }: Props) {
   const [guideLoading, setGuideLoading] = useState(false);
   const [guideError, setGuideError] = useState<string | null>(null);
   const [showEvidence, setShowEvidence] = useState(false);
+  const [showUpload, setShowUpload] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const canRun = (item.trim().length > 0 || pdf !== null) && !loading;
 
-  const onPickFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = ""; // 같은 파일 재선택 허용
+  const handleFile = async (file: File | undefined | null) => {
     if (!file) return;
     const ok = file.type === "application/pdf" || /\.(pdf|hwp)$/i.test(file.name);
     if (!ok) { setError("PDF 또는 HWP 파일만 첨부할 수 있습니다."); return; }
@@ -57,6 +58,12 @@ export default function BusinessEvaluator({ country, onBuildPlan }: Props) {
     setError(null);
     const base64 = await fileToBase64(file);
     setPdf({ name: file.name, base64 });
+  };
+
+  const onPickFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // 같은 파일 재선택 허용
+    await handleFile(file);
   };
 
   const run = async () => {
@@ -118,13 +125,24 @@ export default function BusinessEvaluator({ country, onBuildPlan }: Props) {
       {/* 입력 */}
       <div className="card">
         <div className="card-body">
-          <div className="card-head" style={{ marginBottom: 12 }}>
-            <div>
-              <p className="card-title">사업 아이템 타당성 진단</p>
-              <p className="card-meta">
-                {country.name} 공공데이터(KOICA ODA·분야 비중·세종학당·KF·SDG)에 근거해 가능성을 평가합니다
-              </p>
+          {/* 입력 방식 — 직접 입력 / 사업계획서 첨부 두 카드 */}
+          <div className="doc-mode-grid" style={{ marginBottom: 16 }}>
+            <div className="doc-mode-card on">
+              <span className="doc-mode-icon"><FileText size={22} /></span>
+              <span className="doc-mode-title">직접 입력</span>
+              <span className="doc-mode-desc">사업 아이템을 문장으로 입력합니다</span>
             </div>
+            <button
+              className={`doc-mode-card ${pdf ? "on" : ""}`}
+              onClick={() => setShowUpload(true)}
+            >
+              {pdf && <span className="doc-mode-badge">첨부됨</span>}
+              <span className="doc-mode-icon"><Upload size={22} /></span>
+              <span className="doc-mode-title">사업계획서 첨부</span>
+              <span className="doc-mode-desc">
+                {pdf ? pdf.name : "PDF·HWP 파일을 업로드합니다 (≤ 32MB)"}
+              </span>
+            </button>
           </div>
 
           <textarea
@@ -132,7 +150,7 @@ export default function BusinessEvaluator({ country, onBuildPlan }: Props) {
             rows={3}
             value={item}
             onChange={(e) => setItem(e.target.value)}
-            placeholder={`${country.name}에서 추진하려는 사업 아이템을 입력하거나, 아래에서 사업계획서 PDF를 첨부하세요\n예) ${EXAMPLES[0]}`}
+            placeholder={`${country.name}에서 추진하려는 사업 아이템을 입력하세요\n예) ${EXAMPLES[0]}`}
           />
 
           <div className="eval-examples">
@@ -144,27 +162,24 @@ export default function BusinessEvaluator({ country, onBuildPlan }: Props) {
             ))}
           </div>
 
-          {/* PDF 사업계획서 첨부 (선택) */}
-          <div className="eval-pdf-row">
-            <input
-              ref={fileRef}
-              type="file"
-              accept=".pdf,.hwp,application/pdf"
-              onChange={onPickFile}
-              style={{ display: "none" }}
-            />
-            {pdf ? (
+          {/* 첨부된 파일 요약 (모달 밖에서도 보이게) */}
+          {pdf && (
+            <div className="eval-pdf-row" style={{ marginTop: 12 }}>
               <div className="eval-pdf-chip">
                 <span className="eval-pdf-name">📄 {pdf.name}</span>
                 <button className="eval-pdf-remove" onClick={() => setPdf(null)} aria-label="첨부 취소">✕</button>
               </div>
-            ) : (
-              <button className="btn-ghost btn-sm" onClick={() => fileRef.current?.click()}>
-                📄 사업계획서 첨부 (PDF·HWP)
-              </button>
-            )}
-            <span className="eval-pdf-hint">텍스트·파일 중 하나만 넣어도 되고, 함께 넣으면 둘 다 반영됩니다 (≤ 32MB)</span>
-          </div>
+              <span className="eval-pdf-hint">텍스트·파일 중 하나만 넣어도 되고, 함께 넣으면 둘 다 반영됩니다</span>
+            </div>
+          )}
+
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".pdf,.hwp,application/pdf"
+            onChange={onPickFile}
+            style={{ display: "none" }}
+          />
 
           <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 14 }}>
             <button className="btn-accent" onClick={run} disabled={!canRun}>
@@ -179,6 +194,58 @@ export default function BusinessEvaluator({ country, onBuildPlan }: Props) {
           )}
         </div>
       </div>
+
+      {/* ── 사업계획서 첨부 팝업 ── */}
+      {showUpload && (
+        <div className="modal-overlay" onClick={() => setShowUpload(false)}>
+          <div className="modal-panel" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-head">
+              <p className="modal-title">사업계획서 첨부</p>
+              <button className="modal-close" onClick={() => setShowUpload(false)} aria-label="닫기">
+                <XIcon size={16} />
+              </button>
+            </div>
+
+            <div
+              className={`upload-drop ${dragOver ? "over" : ""}`}
+              onClick={() => fileRef.current?.click()}
+              onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={(e) => { e.preventDefault(); setDragOver(false); handleFile(e.dataTransfer.files?.[0]); }}
+            >
+              {pdf ? (
+                <div className="upload-file">
+                  <span className="upload-file-name">📄 {pdf.name}</span>
+                  <button
+                    className="eval-pdf-remove"
+                    onClick={(e) => { e.stopPropagation(); setPdf(null); }}
+                    aria-label="첨부 취소"
+                  >✕</button>
+                </div>
+              ) : (
+                <>
+                  <span className="upload-drop-icon"><Upload size={30} /></span>
+                  <p className="upload-drop-title">클릭하거나 파일을 여기로 드래그하세요</p>
+                  <p className="upload-drop-hint">PDF · HWP · 최대 32MB</p>
+                </>
+              )}
+            </div>
+
+            {error && (
+              <div className="error-banner" style={{ marginTop: 12 }}>
+                <span>⚠</span><span>{error}</span>
+              </div>
+            )}
+
+            <div className="modal-foot">
+              <button className="btn-ghost" onClick={() => setShowUpload(false)}>취소</button>
+              <button className="btn-fab" onClick={() => setShowUpload(false)} disabled={!pdf}>
+                첨부 완료
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 결과 */}
       {result && (
@@ -305,7 +372,7 @@ export default function BusinessEvaluator({ country, onBuildPlan }: Props) {
                 <div className="card" style={{ borderColor: "var(--accent)", display: "flex", flexDirection: "column" }}>
                   <div className="card-body" style={{ display: "flex", flexDirection: "column", flex: 1, gap: 10 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 20 }}>📄</span>
+                      <span className="next-step-icon accent"><FileText size={18} /></span>
                       <p className="card-title" style={{ margin: 0 }}>사업계획서 초안</p>
                     </div>
                     <p className="card-meta" style={{ flex: 1, margin: 0 }}>
@@ -322,7 +389,7 @@ export default function BusinessEvaluator({ country, onBuildPlan }: Props) {
               <div className="card" style={{ borderColor: "#10b981", display: "flex", flexDirection: "column" }}>
                 <div className="card-body" style={{ display: "flex", flexDirection: "column", flex: 1, gap: 10 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                    <span style={{ fontSize: 20 }}>🧭</span>
+                    <span className="next-step-icon emerald"><Compass size={18} /></span>
                     <p className="card-title" style={{ margin: 0 }}>현지 실행 준비 가이드</p>
                     {guide && <span className="badge badge-green">생성됨 ↓</span>}
                   </div>

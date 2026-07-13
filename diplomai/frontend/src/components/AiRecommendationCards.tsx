@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import type { Recommendation } from "@/types";
 import CitedText from "@/components/CitedText";
 
@@ -23,12 +24,62 @@ const PRIORITY_LABEL: Record<string, string> = {
   low:    "우선순위 낮음",
 };
 
+/* 사업 분야(섹터) → Unsplash 검색 키워드 매핑 */
+const SECTOR_QUERY: Record<string, string> = {
+  "교육":            "school classroom children learning",
+  "보건":            "health clinic medical care",
+  "농업·농촌개발":   "agriculture farming rural field",
+  "농림수산":        "agriculture farming fishery",
+  "환경":            "environment nature green landscape",
+  "기술·환경·에너지": "solar energy renewable technology",
+  "산업·에너지":     "energy power infrastructure",
+  "물·위생":         "clean water well sanitation",
+  "물·위생·보건":    "clean water sanitation",
+  "거버넌스":        "government office public administration",
+  "공공행정":        "government city administration",
+  "긴급구호":        "humanitarian aid relief",
+  "젠더":            "women empowerment community",
+  "공공외교":        "cultural exchange diplomacy people",
+};
+
+function sectorQuery(sector: string): string {
+  if (SECTOR_QUERY[sector]) return SECTOR_QUERY[sector];
+  // 부분 일치 fallback
+  const hit = Object.keys(SECTOR_QUERY).find((k) => sector.includes(k) || k.includes(sector));
+  return hit ? SECTOR_QUERY[hit] : `${sector} development`;
+}
+
+/** 카드 상단 원형 이미지 — 사업 분야 관련 Unsplash 사진 */
+function RecThumb({ sector }: { sector: string }) {
+  const [img, setImg] = useState<{ url: string; alt: string; author: string; author_url: string } | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    const q = sectorQuery(sector);
+    fetch(`/api/image?q=${encodeURIComponent(q)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (alive && d && d.url) setImg(d); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [sector]);
+
+  return (
+    <span className={`rec-thumb${img ? " loaded" : ""}`}>
+      {img && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={img.url} alt={img.alt} title={`Photo: ${img.author} / Unsplash`} loading="lazy" />
+      )}
+    </span>
+  );
+}
+
 function RecCard({ rec, onSelectForPlan }: { rec: Recommendation; onSelectForPlan?: () => void }) {
   const tagCls = PRIORITY_TAG[rec.priority] ?? "";
   const isDiplomacy = rec.type === "diplomacy";
 
   return (
     <div className="rec-card">
+      <RecThumb sector={rec.sector} />
       <div className="rec-card-head">
         <div style={{ display: "flex", alignItems: "center", gap: 7, flex: 1, minWidth: 0 }}>
           {isDiplomacy && (
@@ -89,10 +140,10 @@ export default function AiRecommendationCards({
         <div>
           <p className="ai-section-title">AI 사업 추천</p>
           <p className="ai-section-sub">
-            AI가 {countryName} 데이터를 분석하여 맞춤 ODA 사업을 추천합니다
+            ODA 재원과 공공 지원 채널·무역 정보를 종합해 {countryName}에 최적의 사업 아이템을 추천합니다
           </p>
         </div>
-        <button className="btn-accent" onClick={onGenerate} disabled={loading}>
+        <button className="btn-fab" onClick={onGenerate} disabled={loading}>
           {loading ? <span className="spinner white" /> : "✨"}
           {loading ? "분석 중..." : "AI 추천 생성"}
         </button>

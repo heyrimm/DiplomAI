@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import CitedText, { stripCites } from "@/components/CitedText";
+import { BarChart, FileText } from "@/components/icons";
 import type {
   Country, OdaBudgetResponse, OdaGapsResponse,
   DiplomacyResponse, Recommendation, ProjectPlan,
@@ -231,29 +232,25 @@ export default function ReportTab({
 
   return (
     <div className="stack">
-      {/* Mode toggle */}
-      <div className="card">
-        <div className="card-body" style={{ paddingBottom: 14 }}>
-          <div style={{ display: "flex", gap: 8 }}>
-            <button
-              className={`section-toggle ${docMode === "report" ? "on" : "off"}`}
-              onClick={() => setDocMode("report")}
-            >
-              분석 보고서
-            </button>
-            <button
-              className={`section-toggle ${docMode === "plan" ? "on" : "off"}`}
-              onClick={() => setDocMode("plan")}
-            >
-              사업계획서 초안 <span style={{ fontSize: 10, fontWeight: 700, opacity: .8 }}>NEW</span>
-            </button>
-          </div>
-          <p style={{ fontSize: 12.5, color: "var(--muted)", marginTop: 10 }}>
-            {docMode === "report"
-              ? "국가 데이터를 종합한 분석 보고서를 생성합니다."
-              : "공공데이터·사각지대·여행경보를 근거로 배경-목표-활동-예산-KPI-리스크 구조의 사업계획서 초안을 AI가 작성합니다."}
-          </p>
-        </div>
+      {/* Mode selector — 카드형 */}
+      <div className="doc-mode-grid">
+        <button
+          className={`doc-mode-card ${docMode === "report" ? "on" : ""}`}
+          onClick={() => setDocMode("report")}
+        >
+          <span className="doc-mode-icon"><BarChart size={24} /></span>
+          <span className="doc-mode-title">분석 보고서</span>
+          <span className="doc-mode-desc">국가 데이터를 종합한 분석 보고서를 생성합니다.</span>
+        </button>
+        <button
+          className={`doc-mode-card ${docMode === "plan" ? "on" : ""}`}
+          onClick={() => setDocMode("plan")}
+        >
+          <span className="doc-mode-badge">NEW</span>
+          <span className="doc-mode-icon"><FileText size={24} /></span>
+          <span className="doc-mode-title">사업계획서 초안</span>
+          <span className="doc-mode-desc">공공데이터·사각지대·여행경보를 근거로 배경-목표-활동-예산-KPI-리스크 구조의 초안을 AI가 작성합니다.</span>
+        </button>
       </div>
 
       {docMode === "report" ? (
@@ -262,7 +259,7 @@ export default function ReportTab({
           <div className="card">
             <div className="card-body">
               <p className="card-title" style={{ marginBottom: 14 }}>보고서 구성 선택</p>
-              <div className="section-toggle-row">
+              <div className="section-toggle-row full">
                 {SECTIONS.map((s) => (
                   <button
                     key={s.id}
@@ -473,41 +470,7 @@ export default function ReportTab({
           {/* Plan base selector */}
           <div className="card">
             <div className="card-body">
-              <p className="card-title" style={{ marginBottom: 6 }}>계획서 기반 선택</p>
-              <p style={{ fontSize: 12.5, color: "var(--muted)", marginBottom: 12 }}>
-                AI 추천 사업 중 하나를 골라 구체화하거나, 국가 데이터 종합 기반으로 신규 작성합니다.
-              </p>
-              <div className="section-toggle-row">
-                <button
-                  className={`section-toggle ${planBase === -1 ? "on" : "off"}`}
-                  onClick={() => setPlanBase(-1)}
-                >
-                  국가 종합 (신규 발굴)
-                </button>
-                {planSeed && (
-                  <button
-                    className={`section-toggle ${planBase === PLAN_BASE_EVAL ? "on" : "off"}`}
-                    onClick={() => setPlanBase(PLAN_BASE_EVAL)}
-                  >
-                    🎯 진단한 내 사업
-                  </button>
-                )}
-                {recommendations.map((r, i) => (
-                  <button
-                    key={i}
-                    className={`section-toggle ${planBase === i ? "on" : "off"}`}
-                    onClick={() => setPlanBase(i)}
-                  >
-                    {r.type === "diplomacy" ? "🌐 " : ""}{r.title}
-                  </button>
-                ))}
-              </div>
-              {recommendations.length === 0 && (
-                <p style={{ fontSize: 12, color: "var(--faint)", marginTop: 8 }}>
-                  * AI 추천 탭에서 추천을 먼저 생성하면 추천 사업 기반 계획서도 작성할 수 있습니다.
-                </p>
-              )}
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 18 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <button
                   className="btn-accent"
                   onClick={handleGeneratePlan}

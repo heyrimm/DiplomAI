@@ -355,7 +355,7 @@ export default function Home() {
                 <>
                   <div className="tab-page-header">
                     <h2 className="tab-page-title">사업 타당성 진단 — {country.name}</h2>
-                    <span className="tab-page-sub">내 사업 아이템을 공공데이터로 평가 · 가능성 점수 산출</span>
+                    <span className="tab-page-sub">{country.name} 공공데이터(KOICA ODA·분야 비중·세종학당·KF·SDG 등)에 근거해 가능성을 평가합니다</span>
                   </div>
                   <BusinessEvaluator country={country} onBuildPlan={handleBuildPlanFromEval} />
                 </>

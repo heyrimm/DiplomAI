@@ -119,7 +119,7 @@ export default function OverviewInfographics({ country, budget, gaps, alarm }: P
         <span className="ig-title">KOICA 연간 지원</span>
         <span className="ig-big">{Math.round(total).toLocaleString()}<span className="ig-big-u">억원</span></span>
         {yoy != null && (
-          <span className={`ig-trend ${yoy >= 0 ? "up" : "down"}`}>{yoy >= 0 ? "▲" : "▼"} 전년比 {yoy > 0 ? "+" : ""}{yoy}%</span>
+          <span className={`ig-trend ${yoy >= 0 ? "up" : "down"}`}>{yoy >= 0 ? "▲" : "▼"} 전년 대비 {yoy > 0 ? "+" : ""}{yoy}%</span>
         )}
       </div>
 

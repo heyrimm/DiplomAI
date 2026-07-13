@@ -148,40 +148,56 @@ export default function GlobalDashboard({ onSelectCountry }: Props) {
               letterSpacing: ".04em", flexShrink: 0,
             }}>KOICA × KF</span>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 12 }}>
-            {gapsData.gaps.map((g) => (
-              <button
-                key={g.country_id}
-                className="gd-gap-card"
-                onClick={() => onSelectCountry?.(g.country_id)}
-                style={{
-                  display: "block", width: "100%",
-                  textAlign: "left", cursor: "pointer",
-                  padding: "11px 14px", borderRadius: "var(--r-md)",
-                  border: "1px solid rgba(180,83,9,.18)",
-                  background: "rgba(180,83,9,.04)",
-                }}
-              >
-                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "3px 8px" }}>
-                  {flagSrc(g.country_id) && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={flagSrc(g.country_id)!} alt="" style={{ width: 18, height: 18, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)" }} />
-                  )}
-                  <span style={{ fontSize: 13.5, fontWeight: 700, color: "var(--ink)" }}>{g.country_id}</span>
-                  <span style={{ fontSize: 11, fontWeight: 400, color: "var(--faint)" }}>{g.region}</span>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: "#b45309", fontVariantNumeric: "tabular-nums" }}>
-                    ODA 연 {Math.round(g.oda_budget)}억
-                  </span>
-                  <span style={{ fontSize: 11.5, color: "var(--ink-soft)" }}>
-                    {g.kf_total === 0
-                      ? "KF 공공외교 사업 이력 없음"
-                      : `KF 사업 ${g.kf_last_year}년 이후 중단 (누적 ${g.kf_total}건)`}
-                  </span>
-                  <span style={{ fontSize: 11.5, color: "var(--accent)" }}>분석 보기 →</span>
-                </div>
-              </button>
-            ))}
-          </div>
+          {(() => {
+            // 세부 지역 → 큰 대륙으로 통합
+            const macro = (region: string): string => {
+              if (region.includes("아시아")) return "아시아";
+              if (region.includes("남미") || region.includes("중미") || region.includes("카리브")) return "중남미";
+              if (region.includes("중동")) return "중동";
+              if (region.includes("아프리카")) return "아프리카";
+              if (region.includes("유럽")) return "유럽";
+              if (region.includes("오세아니아") || region.includes("태평양")) return "오세아니아";
+              return region;
+            };
+            const groups: Record<string, typeof gapsData.gaps> = {};
+            for (const g of gapsData.gaps) (groups[macro(g.region)] ??= []).push(g);
+            const regionOrder = Object.keys(groups).sort((a, b) => groups[b].length - groups[a].length);
+            return (
+              <div className="gap-groups">
+                {regionOrder.map((region) => (
+                  <div className="gap-group" key={region}>
+                    <p className="gap-group-title">{region}</p>
+                    <div className="gap-group-list">
+                      {groups[region]
+                        .slice()
+                        .sort((a, b) => b.oda_budget - a.oda_budget)
+                        .map((g) => (
+                          <button
+                            key={g.country_id}
+                            className="gap-row"
+                            onClick={() => onSelectCountry?.(g.country_id)}
+                          >
+                            {flagSrc(g.country_id) && (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img className="gap-row-flag" src={flagSrc(g.country_id)!} alt="" />
+                            )}
+                            <span className="gap-row-txt">
+                              <span className="gap-row-name">{g.country_id}</span>
+                              <span className="gap-row-meta">
+                                ODA 연 {Math.round(g.oda_budget)}억 ·{" "}
+                                {g.kf_total === 0
+                                  ? "KF 이력 없음"
+                                  : `KF ${g.kf_last_year}년 이후 중단`}
+                              </span>
+                            </span>
+                          </button>
+                        ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
           <p style={{ fontSize: 10.5, color: "var(--faint)", marginTop: 10 }}>
             출처: {gapsData.sources.join(" · ")}
           </p>
