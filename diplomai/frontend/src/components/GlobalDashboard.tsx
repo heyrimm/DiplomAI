@@ -165,7 +165,7 @@ export default function GlobalDashboard({ onSelectCountry }: Props) {
                 <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "3px 8px" }}>
                   {flagSrc(g.country_id) && (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={flagSrc(g.country_id)!} alt="" style={{ width: 20, height: 14, borderRadius: 3, objectFit: "cover", border: "1px solid var(--line)" }} />
+                    <img src={flagSrc(g.country_id)!} alt="" style={{ width: 18, height: 18, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--line)" }} />
                   )}
                   <span style={{ fontSize: 13.5, fontWeight: 700, color: "var(--ink)" }}>{g.country_id}</span>
                   <span style={{ fontSize: 11, fontWeight: 400, color: "var(--faint)" }}>{g.region}</span>

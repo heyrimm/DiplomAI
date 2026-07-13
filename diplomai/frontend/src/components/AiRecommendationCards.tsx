@@ -89,7 +89,7 @@ export default function AiRecommendationCards({
         <div>
           <p className="ai-section-title">AI 사업 추천</p>
           <p className="ai-section-sub">
-            Claude AI가 {countryName} 데이터를 분석하여 맞춤 ODA 사업을 추천합니다
+            AI가 {countryName} 데이터를 분석하여 맞춤 ODA 사업을 추천합니다
           </p>
         </div>
         <button className="btn-accent" onClick={onGenerate} disabled={loading}>
@@ -100,7 +100,6 @@ export default function AiRecommendationCards({
 
       {recommendations.length === 0 && !loading && (
         <div className="ai-empty">
-          <div className="ai-empty-icon">🤖</div>
           <p>
             &quot;AI 추천 생성&quot; 버튼을 눌러
             <br />
@@ -114,7 +113,7 @@ export default function AiRecommendationCards({
           <div className="ai-empty-icon" style={{ border: 0, background: "transparent" }}>
             <span className="spinner" style={{ width: 28, height: 28, borderWidth: 3 }} />
           </div>
-          <p>Claude AI가 데이터를 분석하는 중...</p>
+          <p>AI가 데이터를 분석하는 중...</p>
         </div>
       )}
 

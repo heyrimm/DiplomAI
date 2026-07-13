@@ -293,7 +293,7 @@ overall_score는 이 시나리오의 정책 효과성 점수 (0-100, 정수)."""
     except json.JSONDecodeError:
         raise HTTPException(status_code=502, detail="AI 응답 파싱 실패")
     except anthropic.APIError as e:
-        raise HTTPException(status_code=502, detail=f"Claude API 오류: {e}")
+        raise HTTPException(status_code=502, detail="AI 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.")
 
     result = {
         "country_id": country_id,

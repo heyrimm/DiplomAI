@@ -28,8 +28,7 @@ import GlobalDashboard from "@/components/GlobalDashboard";
 import BusinessEvaluator from "@/components/BusinessEvaluator";
 import MarketInfo from "@/components/MarketInfo";
 import Landing from "@/components/Landing";
-import CountryRecommender from "@/components/CountryRecommender";
-import { ChevronLeft, ChevronRight, HelpCircle, Bell, Settings } from "@/components/icons";
+import { ChevronLeft, ChevronRight, HelpCircle, Bell } from "@/components/icons";
 
 const TAB_LABELS: Record<TabId, string> = {
   global:     "글로벌 현황",
@@ -59,7 +58,24 @@ export default function Home() {
   const [error, setError]             = useState<string | null>(null);
   const [loading, setLoading]         = useState(false);
   const [entered, setEntered]         = useState(false);
-  const [recommendMode, setRecommendMode] = useState(false);
+  const [toast, setToast]             = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 2400);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  // 국가별 탭은 국가 선택이 필요 — 미선택 시 toast 안내
+  const NEED_COUNTRY: TabId[] = ["market", "oda", "diplomacy", "evaluate", "report"];
+  const handleNav = (id: TabId) => {
+    if (NEED_COUNTRY.includes(id) && !selectedId) {
+      setToast(null);
+      requestAnimationFrame(() => setToast("국가를 먼저 선택해주세요"));
+      return;
+    }
+    setActiveTab(id);
+  };
 
   const loadCountryData = useCallback(async (id: string | null) => {
     if (!id) return;
@@ -143,9 +159,9 @@ export default function Home() {
   if (!entered) {
     return (
       <Landing
-        onEnter={(mode) => {
+        onEnter={() => {
           setEntered(true);
-          setRecommendMode(mode === "recommend");
+          setActiveTab("global");
         }}
       />
     );
@@ -159,8 +175,8 @@ export default function Home() {
         selectedId={selectedId}
         activeNav={activeTab}
         onCountryChange={handleCountrySelect}
-        onNavChange={(id) => setActiveTab(id as TabId)}
-        onHome={() => { setSelectedId(null); setActiveTab("overview"); setRecommendMode(false); }}
+        onNavChange={(id) => handleNav(id as TabId)}
+        onHome={() => { setSelectedId(null); setActiveTab("overview"); }}
       />
 
       {/* ── Main area ── */}
@@ -194,8 +210,6 @@ export default function Home() {
           <div className="nav-actions">
             <button className="nav-icon-btn" aria-label="도움말"><HelpCircle size={17} /></button>
             <button className="nav-icon-btn" aria-label="알림"><Bell size={17} /></button>
-            <button className="nav-icon-btn" aria-label="설정"><Settings size={17} /></button>
-            <span className="nav-avatar">교</span>
           </div>
         </header>
 
@@ -226,16 +240,9 @@ export default function Home() {
             </div>
           )}
 
-          {/* 국가 미선택 → (추천 모드) 사업 입력 기반 국가 추천 / (기본) 국가 목록 */}
+          {/* 국가 미선택 → 국가 목록 */}
           {activeTab !== "global" && !selectedId && !loading && (
-            recommendMode ? (
-              <CountryRecommender
-                onSelect={handleCountrySelect}
-                onBrowse={() => setRecommendMode(false)}
-              />
-            ) : (
-              <CountryLanding onSelect={handleCountrySelect} />
-            )
+            <CountryLanding onSelect={handleCountrySelect} />
           )}
 
           {/* 로딩 상태 */}
@@ -254,6 +261,8 @@ export default function Home() {
                 riskCount={gaps?.gaps.length ?? 0}
                 recommendCount={recommendations.length}
                 alarm={alarm}
+                koicaBudget={totalBudget}
+                koicaYoy={yoyPct}
               />
 
               <div className="content-area">
@@ -267,13 +276,15 @@ export default function Home() {
                 />
               </div>
 
-              <AiRecommendationCards
-                recommendations={recommendations}
-                loading={loadingRec}
-                onGenerate={handleGenerateRecommendations}
-                onSelectForPlan={handleSelectForPlan}
-                countryName={country.name}
-              />
+              <div id="ai-recommend">
+                <AiRecommendationCards
+                  recommendations={recommendations}
+                  loading={loadingRec}
+                  onGenerate={handleGenerateRecommendations}
+                  onSelectForPlan={handleSelectForPlan}
+                  countryName={country.name}
+                />
+              </div>
             </>
           )}
 
@@ -304,13 +315,15 @@ export default function Home() {
                     <span className="tab-page-sub">KOICA 국가별 지원실적 · {budget?.year ?? 2023}년</span>
                   </div>
                   <OdaTab countryId={selectedId ?? ""} budget={budget} gaps={gaps} peer={peer} />
-                  <AiRecommendationCards
-                    recommendations={recommendations}
-                    loading={loadingRec}
-                    onGenerate={handleGenerateRecommendations}
-                    onSelectForPlan={handleSelectForPlan}
-                    countryName={country.name}
-                  />
+                  <div id="ai-recommend">
+                    <AiRecommendationCards
+                      recommendations={recommendations}
+                      loading={loadingRec}
+                      onGenerate={handleGenerateRecommendations}
+                      onSelectForPlan={handleSelectForPlan}
+                      countryName={country.name}
+                    />
+                  </div>
                 </>
               ) : !loading && (
                 <div className="empty-state">국가를 먼저 선택하세요</div>
@@ -390,6 +403,25 @@ export default function Home() {
 
         </main>
       </div>
+
+      {country && (activeTab === "overview" || activeTab === "oda") && (
+        <button
+          className="fab-recommend"
+          onClick={() => {
+            document.getElementById("ai-recommend")?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }}
+          aria-label="AI 사업 추천으로 이동"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 3l1.9 4.6L18.5 9.5 13.9 11.4 12 16l-1.9-4.6L5.5 9.5l4.6-1.9L12 3z" fill="currentColor" />
+            <circle cx="18.5" cy="17.5" r="2.4" fill="currentColor" opacity="0.85" />
+            <circle cx="5.5" cy="16.5" r="1.6" fill="currentColor" opacity="0.7" />
+          </svg>
+          <span>AI 사업 추천</span>
+        </button>
+      )}
+
+      {toast && <div className="toast" role="status">{toast}</div>}
     </div>
   );
 }

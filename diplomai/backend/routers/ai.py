@@ -161,7 +161,7 @@ async def get_recommendations(req: RecommendationRequest):
     except json.JSONDecodeError:
         raise HTTPException(status_code=502, detail="AI 응답 파싱 실패")
     except anthropic.APIError as e:
-        raise HTTPException(status_code=502, detail=f"Claude API 오류: {e}")
+        raise HTTPException(status_code=502, detail="AI 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.")
 
     result = {
         "country_id": country_id,
@@ -202,17 +202,17 @@ def _score_components(
     r_pct = reg_props.get(sector, 0.0)
     if r_pct > 0:
         ratio = (c_pct / r_pct) if c_pct > 0 else 0.0
-        if   ratio <= 0.50: s1 = 35.0
-        elif ratio <= 0.85: s1 = 34 - (ratio - 0.50) / 0.35 * 6
-        elif ratio <= 1.15: s1 = 27 - (ratio - 0.85) / 0.30 * 7
-        elif ratio <= 1.50: s1 = 20 - (ratio - 1.15) / 0.35 * 6
-        else:               s1 = 12.0
+        if   ratio <= 0.50: s1 = 30.0
+        elif ratio <= 0.85: s1 = 29 - (ratio - 0.50) / 0.35 * 7
+        elif ratio <= 1.15: s1 = 21 - (ratio - 0.85) / 0.30 * 8
+        elif ratio <= 1.50: s1 = 13 - (ratio - 1.15) / 0.35 * 6
+        else:               s1 = 6.0
         tag = ("사각지대 — 진입 여지 큼" if ratio < 0.85
                else "이미 집중 투입 분야" if ratio > 1.3 else "지역평균과 균형")
         note1 = (f"이 국가 {sector} 비중 [[{c_pct*100:.1f}%|협력국 통합 개발 지표·data.go.kr]] "
                  f"vs 지역평균 {r_pct*100:.1f}% (비율 {ratio:.2f}) — {tag}")
     else:
-        s1, note1 = 18.0, f"{sector} 지역평균 데이터 없음 — 중립 평가"
+        s1, note1 = 12.0, f"{sector} 지역평균 데이터 없음 — 근거 부족(보수 평가)"
 
     # ── 2. 개발 니즈 (25) — HDI · 소득수준
     hdi = float(meta.get("hdi") or 0.6)
@@ -226,12 +226,13 @@ def _score_components(
     # ── 3. ODA 채널·예산 여력 (20) — KOICA ODA 실적 CSV
     budget = (latest or {}).get("budget_억원", 0) or 0
     yoy = (latest or {}).get("yoy_pct")
-    mag = min(16.0, math.log10(budget + 1) / math.log10(301) * 16) if budget > 0 else 0.0
-    trend = 4 if (yoy is not None and yoy > 0) else (2 if yoy is not None else 0)
-    s3 = _clamp(mag + trend, 0, 20)
+    # 대규모 실적(≈1000억)에서만 상한 근접 — 예산 여력 점수를 보수적으로
+    mag = min(13.0, math.log10(budget + 1) / math.log10(1001) * 13) if budget > 0 else 0.0
+    trend = 3 if (yoy is not None and yoy > 0) else (1 if yoy is not None else 0)
+    s3 = _clamp(mag + trend, 0, 16)
     note3 = (f"KOICA 최근 지원 [[{budget}억원|KOICA ODA 실적·data.go.kr]]"
              + (f", 전년비 {yoy:+.0f}%" if yoy is not None else "")
-             + " — 이행 채널 " + ("탄탄" if s3 >= 13 else "보통" if s3 >= 7 else "취약"))
+             + " — 이행 채널 " + ("탄탄" if s3 >= 11 else "보통" if s3 >= 6 else "취약"))
 
     # ── 4. 공공외교 연계·소프트파워 (10) — 세종학당·KF·재외동포
     s4, parts = 0.0, []
@@ -244,10 +245,10 @@ def _score_components(
     s4 = min(10.0, s4)
     note4 = " · ".join(parts) if parts else "한국 공공외교 발자국 적음"
 
-    # ── 5. SDG 정합 (10) — KOICA SDG 매핑
+    # ── 5. SDG 정합 (10) — KOICA SDG 매핑 (대부분 분야가 여러 SDG에 걸려 보수적으로)
     sdgs = get_sdg_goals(sector)
     n = len(sdgs)
-    s5 = 10.0 if n >= 2 else 6.0 if n == 1 else 3.0
+    s5 = 2.0 if n == 0 else 4.0 if n == 1 else 6.0 if n <= 3 else 8.0
     note5 = f"{sector} 연계 SDG {n}개" + (f": {', '.join(sdgs)}" if sdgs else "")
 
     return [
@@ -278,8 +279,11 @@ def _build_eval_prompt(
     else:
         item_section = f'## 사용자 제안 사업 아이템\n"{item}"'
 
-    return f"""당신은 대한민국 외교부 ODA·공공외교 사업 심사관입니다.
-사용자가 제안한 사업을 아래 국가 공공데이터에 비추어 정성 평가하세요.
+    return f"""당신은 대한민국 외교부 ODA·공공외교 사업의 **깐깐한 심사관**입니다.
+사용자가 제안한 사업을 아래 국가 공공데이터에 비추어 **비판적으로, 후하지 않게** 평가하세요.
+- 구체성·실행 가능성이 부족하면 명확히 지적하고, 막연한 아이디어는 낮게 봅니다.
+- 첨부 사업계획서가 있으면 예산 근거·KPI·리스크 대응·현지 실행체계를 타이트하게 따지세요.
+- 근거 없는 낙관은 배제합니다.
 
 {item_section}
 
@@ -296,15 +300,15 @@ def _build_eval_prompt(
 ## 출력 형식 (JSON 객체만, 마크다운 없이)
 {{
   "sector": "위 분야 목록 중 이 사업과 가장 가까운 것 1개",
-  "summary": "한 줄 총평 (60자 이내)",
-  "strengths": ["데이터 근거 강점 2~3개, 각 60자 이내"],
-  "risks": ["리스크·주의점 2~3개, 각 60자 이내"],
-  "reasoning": "종합 판단 근거 (200자 이내, 국가 데이터 인용)",
-  "similar_precedents": ["해당국 KOICA/KF 이력 중 유사 선례 (없으면 빈 배열)"],
-  "adjustments": ["사업 성공 확률을 높일 구체 조정안 2~3개"]
+  "summary": "냉정한 한 줄 총평 (50자 이내)",
+  "strengths": ["실제 데이터로 뒷받침되는 강점만 1~2개, 각 45자 이내"],
+  "risks": ["핵심 리스크·미흡점 2~3개, 각 45자 이내"],
+  "reasoning": "종합 판단 근거 (130자 이내, 국가 데이터 인용)",
+  "similar_precedents": ["해당국 KOICA/KF 유사 선례 (없으면 빈 배열)"],
+  "adjustments": ["가장 중요한 개선 조언 2개, 각 35자 이내로 짧고 실행중심"]
 }}
 
-수치를 인용할 때는 [[수치|출처]] 형식으로 감싸세요. 위 데이터에 없는 수치는 지어내지 마세요.
+과장 없이 냉정하게. 수치 인용은 [[수치|출처]] 형식. 위 데이터에 없는 수치는 지어내지 마세요.
 반드시 JSON 객체만 출력하세요."""
 
 
@@ -376,7 +380,7 @@ async def evaluate_item(req: EvaluateRequest):
     except json.JSONDecodeError:
         raise HTTPException(status_code=502, detail="AI 응답 파싱 실패")
     except anthropic.APIError as e:
-        raise HTTPException(status_code=502, detail=f"Claude API 오류: {e}")
+        raise HTTPException(status_code=502, detail="AI 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.")
 
     sector = analysis.get("sector", "")
     if sector not in CANONICAL_SECTORS:
@@ -542,7 +546,7 @@ async def get_entry_guide(req: EntryGuideRequest):
     except json.JSONDecodeError:
         raise HTTPException(status_code=502, detail="AI 응답 파싱 실패")
     except anthropic.APIError as e:
-        raise HTTPException(status_code=502, detail=f"Claude API 오류: {e}")
+        raise HTTPException(status_code=502, detail="AI 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.")
 
     data_sources = ["Claude AI"]
     if kotra_nation:
@@ -703,7 +707,7 @@ async def recommend_countries(req: CountryRecommendRequest):
     except json.JSONDecodeError:
         raise HTTPException(status_code=502, detail="AI 응답 파싱 실패")
     except anthropic.APIError as e:
-        raise HTTPException(status_code=502, detail=f"Claude API 오류: {e}")
+        raise HTTPException(status_code=502, detail="AI 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.")
 
     out = []
     for r in recs:
@@ -850,7 +854,7 @@ async def market_brief(req: MarketBriefRequest):
     except json.JSONDecodeError:
         raise HTTPException(status_code=502, detail="AI 응답 파싱 실패")
     except anthropic.APIError as e:
-        raise HTTPException(status_code=502, detail=f"Claude API 오류: {e}")
+        raise HTTPException(status_code=502, detail="AI 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.")
 
     result = {
         "country_id": country_id,

@@ -67,7 +67,7 @@ export default function Sidebar({ selectedId, activeNav, onNavChange, onHome }: 
 
       {/* Selected country / store pill */}
       <div className="sb-section-label">분석 대상</div>
-      <div className="sb-store">
+      <button className="sb-store" onClick={onHome} title="국가 선택 화면으로">
         <span className="sb-store-badge">
           {selectedId && flagSrc(selectedId) ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -78,7 +78,7 @@ export default function Sidebar({ selectedId, activeNav, onNavChange, onHome }: 
         </span>
         <span className="sb-store-name">{selectedId ?? "국가 미선택"}</span>
         <span className="sb-store-chev"><ChevronDown size={15} /></span>
-      </div>
+      </button>
 
       {/* Primary nav — 업무 흐름 단계별 그룹 */}
       <nav>
@@ -98,18 +98,6 @@ export default function Sidebar({ selectedId, activeNav, onNavChange, onHome }: 
           </div>
         ))}
       </nav>
-
-      <div className="sb-spacer" />
-
-      {/* User profile */}
-      <div className="sb-user">
-        <span className="sb-user-avatar">교</span>
-        <span className="sb-user-meta">
-          <span className="sb-user-name">국제교류 담당자</span>
-          <span className="sb-user-role">지자체 · 대학 · NGO</span>
-        </span>
-        <span className="sb-user-chev"><ChevronDown size={15} /></span>
-      </div>
     </aside>
   );
 }

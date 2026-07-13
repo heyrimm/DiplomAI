@@ -136,7 +136,7 @@ export default function ReportTab({
       ``,
     ];
     if (executiveSummary) {
-      lines.push(`## 종합 전략 분석 (AI)`, ``, stripCites(executiveSummary), ``, `*생성: Claude AI · KOICA 공공데이터 기반*`, ``);
+      lines.push(`## 종합 전략 분석 (AI)`, ``, stripCites(executiveSummary), ``, `*생성: AI · KOICA 공공데이터 기반*`, ``);
     }
     if (selected.has("overview")) {
       lines.push(`## 1. 국가 개요`, ``, `| 항목 | 값 |`, `|------|------|`,
@@ -194,7 +194,7 @@ export default function ReportTab({
       ``,
       `**대상국:** ${country.name} (${country.name_en})  `,
       `**유형:** ${plan.type === "diplomacy" ? "공공외교" : "ODA"}${plan.duration ? ` · 기간 ${plan.duration}` : ""}  `,
-      `**작성일:** ${today} · DiplomAI 자동 생성 초안 (Claude AI · 공공데이터 기반)`,
+      `**작성일:** ${today} · DiplomAI 자동 생성 초안 (AI · 공공데이터 기반)`,
       ``,
       `## 1. 추진 배경`, ``, stripCites(plan.background), ``,
       `## 2. 사업 목표`, ``,
@@ -328,7 +328,7 @@ export default function ReportTab({
                   </p>
                   <p style={{ fontSize: 13.5, color: "var(--ink)", lineHeight: 1.75 }}><CitedText text={executiveSummary} /></p>
                   <p style={{ fontSize: 11, color: "var(--faint)", marginTop: 8 }}>
-                    생성: Claude AI · KOICA 공공데이터 기반
+                    생성: AI · KOICA 공공데이터 기반
                   </p>
                 </div>
               )}
@@ -570,7 +570,7 @@ export default function ReportTab({
                   </p>
                   <h2 className="report-title">{plan.title}</h2>
                   <p className="report-meta">
-                    대상국: {country.name} · 작성일: {today} · Claude AI 자동 생성 초안 (공공데이터 기반)
+                    대상국: {country.name} · 작성일: {today} · AI 자동 생성 초안 (공공데이터 기반)
                   </p>
                 </div>
                 <div className="no-print" style={{ display: "flex", gap: 8, flexShrink: 0 }}>

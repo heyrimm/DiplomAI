@@ -209,7 +209,7 @@ async def _generate_plan(country_id: str, meta: dict, base_rec: dict | None) -> 
     except json.JSONDecodeError:
         raise HTTPException(status_code=502, detail="AI 응답 파싱 실패 — 다시 시도해주세요.")
     except anthropic.APIError as e:
-        raise HTTPException(status_code=502, detail=f"Claude API 오류: {e}")
+        raise HTTPException(status_code=502, detail="AI 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.")
     except HTTPException:
         raise
     except Exception:
@@ -247,7 +247,7 @@ def _generate_summary(country_id: str, meta: dict) -> dict:
         )
         executive_summary = msg.content[0].text.strip()
     except anthropic.APIError as e:
-        raise HTTPException(status_code=502, detail=f"Claude API 오류: {e}")
+        raise HTTPException(status_code=502, detail="AI 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.")
     except HTTPException:
         raise
     except Exception:

@@ -349,7 +349,7 @@ export default function SimulationTab({ countryId }: Props) {
             <div className="card-head" style={{ marginBottom: 18 }}>
               <div>
                 <p className="card-title">✦ AI 시나리오 분석 결과</p>
-                <p className="card-meta">Claude AI 정책 효과성 분석 · claude-haiku-4-5</p>
+                <p className="card-meta">AI 정책 효과성 분석</p>
               </div>
               <div style={{
                 padding: "6px 14px",

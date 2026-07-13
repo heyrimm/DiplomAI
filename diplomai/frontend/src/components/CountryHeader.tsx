@@ -8,6 +8,8 @@ interface Props {
   riskCount: number;
   recommendCount: number;
   alarm?: TravelAlarm | null;
+  koicaBudget?: number | null;
+  koicaYoy?: number | null;
 }
 
 const ALL_FLAGS: Record<string, string> = {
@@ -31,7 +33,7 @@ function getAlarmClass(color?: string): string {
   return map[color ?? ""] ?? "alarm-gray";
 }
 
-export default function CountryHeader({ country, riskCount, recommendCount, alarm }: Props) {
+export default function CountryHeader({ country, riskCount, recommendCount, alarm, koicaBudget, koicaYoy }: Props) {
   const risk  = getRiskBadge(country.hdi);
   const today = new Date().toLocaleDateString("ko-KR", { year: "numeric", month: "2-digit" });
 
@@ -61,7 +63,7 @@ export default function CountryHeader({ country, riskCount, recommendCount, alar
           &nbsp;&nbsp;·&nbsp;&nbsp;{country.income_level}
         </p>
 
-        <div className="hero-badges">
+        <div className="hero-badges hero-badges-lg">
           {alarm && alarm.level !== "0" && (
             <span className={`alarm-badge ${getAlarmClass(alarm.level_color)}`}>
               ✈ {alarm.level_label}
@@ -74,24 +76,6 @@ export default function CountryHeader({ country, riskCount, recommendCount, alar
           {recommendCount > 0 && (
             <span className="badge badge-blue">✦ AI 추천 {recommendCount}건</span>
           )}
-        </div>
-
-        {/* Inline mini stats row */}
-        <div className="hero-inline-stats">
-          <div className="hero-inline-stat">
-            <span className="his-label">인구</span>
-            <span className="his-value">{(country.population / 1_000_000).toFixed(0)}M</span>
-          </div>
-          <div className="his-sep" />
-          <div className="hero-inline-stat">
-            <span className="his-label">1인당 GDP</span>
-            <span className="his-value">${country.gdp_per_capita.toLocaleString()}</span>
-          </div>
-          <div className="his-sep" />
-          <div className="hero-inline-stat">
-            <span className="his-label">HDI</span>
-            <span className="his-value">{country.hdi}</span>
-          </div>
         </div>
       </div>
 
@@ -123,6 +107,28 @@ export default function CountryHeader({ country, riskCount, recommendCount, alar
           <span className="card-label">HDI</span>
           <span className="card-value">{country.hdi}</span>
           <span className="card-sub">인간개발지수</span>
+        </div>
+
+        {koicaBudget != null && koicaBudget > 0 && (
+          <div className="art-data-card tertiary">
+            <span className="card-label">KOICA 연간지원</span>
+            <span className="card-value">
+              {Math.round(koicaBudget).toLocaleString()}
+              <span className="card-value-unit">억</span>
+            </span>
+            <span className="card-sub">
+              {koicaYoy != null ? `전년비 ${koicaYoy > 0 ? "+" : ""}${koicaYoy}%` : "KOICA ODA 실적"}
+            </span>
+          </div>
+        )}
+
+        <div className="art-data-card quaternary">
+          <span className="card-label">1인당 GDP</span>
+          <span className="card-value">
+            <span className="card-value-unit" style={{ marginLeft: 0, marginRight: 1 }}>$</span>
+            {Math.round(country.gdp_per_capita).toLocaleString()}
+          </span>
+          <span className="card-sub">USD</span>
         </div>
       </div>
     </section>

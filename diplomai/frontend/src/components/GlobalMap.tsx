@@ -5,6 +5,7 @@ import {
   ComposableMap, Geographies, Geography, Marker,
 } from "react-simple-maps";
 import worldTopo from "world-atlas/countries-110m.json";
+import CountUp from "@/components/CountUp";
 
 interface Props {
   onSelectCountry?: (id: string) => void;
@@ -116,14 +117,14 @@ export default function GlobalMap({ onSelectCountry }: Props) {
       {/* ── 좌: 큰 숫자 + 지표 ── */}
       <div className="gmap-side">
         <div className="gmap-hero">
-          <span className="gmap-hero-num">{koicaN}</span>
+          <CountUp value={koicaN} className="gmap-hero-num" />
           <span className="gmap-hero-lab">개국 지원 협력국</span>
         </div>
 
         <div className="gmap-stats">
           {gapCount != null && (
             <div className="gmap-stat">
-              <span className="gmap-stat-num">{gapCount}</span>
+              <CountUp value={gapCount} className="gmap-stat-num" />
               <span className="gmap-stat-lab">공공외교<br />공백 국가</span>
             </div>
           )}
@@ -133,13 +134,13 @@ export default function GlobalMap({ onSelectCountry }: Props) {
           </div>
           {summary && (
             <div className="gmap-stat">
-              <span className="gmap-stat-num">{summary.kpis.sejong_countries}</span>
+              <CountUp value={summary.kpis.sejong_countries} className="gmap-stat-num" />
               <span className="gmap-stat-lab">세종학당<br />운영국</span>
             </div>
           )}
           {summary && (
             <div className="gmap-stat">
-              <span className="gmap-stat-num">{fmt(summary.kpis.total_learners)}</span>
+              <CountUp value={summary.kpis.total_learners} className="gmap-stat-num" format={fmt} />
               <span className="gmap-stat-lab">한국어<br />학습자</span>
             </div>
           )}

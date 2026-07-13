@@ -51,8 +51,9 @@ export default function BusinessEvaluator({ country, onBuildPlan }: Props) {
     const file = e.target.files?.[0];
     e.target.value = ""; // 같은 파일 재선택 허용
     if (!file) return;
-    if (file.type !== "application/pdf") { setError("PDF 파일만 첨부할 수 있습니다."); return; }
-    if (file.size > 32 * 1024 * 1024) { setError("PDF는 32MB 이하만 가능합니다."); return; }
+    const ok = file.type === "application/pdf" || /\.(pdf|hwp)$/i.test(file.name);
+    if (!ok) { setError("PDF 또는 HWP 파일만 첨부할 수 있습니다."); return; }
+    if (file.size > 32 * 1024 * 1024) { setError("파일은 32MB 이하만 가능합니다."); return; }
     setError(null);
     const base64 = await fileToBase64(file);
     setPdf({ name: file.name, base64 });
@@ -148,7 +149,7 @@ export default function BusinessEvaluator({ country, onBuildPlan }: Props) {
             <input
               ref={fileRef}
               type="file"
-              accept="application/pdf"
+              accept=".pdf,.hwp,application/pdf"
               onChange={onPickFile}
               style={{ display: "none" }}
             />
@@ -159,10 +160,10 @@ export default function BusinessEvaluator({ country, onBuildPlan }: Props) {
               </div>
             ) : (
               <button className="btn-ghost btn-sm" onClick={() => fileRef.current?.click()}>
-                📄 PDF 사업계획서 첨부
+                📄 사업계획서 첨부 (PDF·HWP)
               </button>
             )}
-            <span className="eval-pdf-hint">텍스트·PDF 중 하나만 넣어도 되고, 함께 넣으면 둘 다 반영됩니다 (PDF ≤ 32MB)</span>
+            <span className="eval-pdf-hint">텍스트·파일 중 하나만 넣어도 되고, 함께 넣으면 둘 다 반영됩니다 (≤ 32MB)</span>
           </div>
 
           <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 14 }}>

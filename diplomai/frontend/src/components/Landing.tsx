@@ -3,7 +3,7 @@
 import { flagSrc } from "@/lib/flags";
 
 interface Props {
-  onEnter: (mode: "recommend" | "browse") => void;
+  onEnter: () => void;
 }
 
 /* 궤도에 띄울 국기 (중앙 텍스트 영역을 피해 배치) */
@@ -29,7 +29,7 @@ export default function Landing({ onEnter }: Props) {
           <img src="/diplomai-mark.png" alt="DiplomAI" className="lp-brand-img" />
           <span className="lp-brand-name">DiplomAI</span>
         </div>
-        <button className="lp-nav-btn" onClick={() => onEnter("browse")}>시작하기</button>
+        <button className="lp-nav-btn" onClick={onEnter}>시작하기</button>
       </header>
 
       <section className="lp-hero">
@@ -58,8 +58,8 @@ export default function Landing({ onEnter }: Props) {
           </h1>
           <p className="lp-sub">본인의 사업을 진출할 수 있는 최고의 국가를 추천해드립니다</p>
           <div className="lp-cta">
-            <button className="lp-btn-primary" onClick={() => onEnter("recommend")}>국가 추천 받기</button>
-            <button className="lp-btn-ghost" onClick={() => onEnter("browse")}>둘러보기</button>
+            <button className="lp-btn-primary" onClick={onEnter}>시작하기</button>
+            <button className="lp-btn-ghost" onClick={onEnter}>둘러보기</button>
           </div>
         </div>
       </section>

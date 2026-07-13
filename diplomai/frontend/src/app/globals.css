@@ -190,12 +190,19 @@ h1, h2, h3, h4, p { margin: 0; }
   display: flex;
   align-items: center;
   gap: 9px;
+  width: 100%;
+  min-height: 0;
   padding: 9px 10px;
   border: 1px solid var(--line);
   border-radius: var(--r-md);
   background: var(--surface);
   box-shadow: var(--shadow-xs);
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color .15s, background .15s;
 }
+.sb-store:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-soft); }
 .sb-store-badge {
   display: flex;
   align-items: center;
@@ -616,9 +623,9 @@ h1, h2, h3, h4, p { margin: 0; }
 .hero-title-row .hero-title { margin-top: 0; }
 
 .hero-title-flag {
-  height: clamp(26px, 3vw, 38px);
-  width: auto;
-  border-radius: 6px;
+  width: clamp(32px, 3.4vw, 42px);
+  height: clamp(32px, 3.4vw, 42px);
+  border-radius: 50%;
   border: 1px solid var(--line);
   box-shadow: var(--shadow-xs);
   object-fit: cover;
@@ -859,6 +866,8 @@ h1, h2, h3, h4, p { margin: 0; }
 /* Cards placed in top corners — clear of hub, beams, and nodes */
 .art-data-card.primary   { right: 8%; top: 10%; animation: rise-in .5s ease .10s both, float-a 7s ease-in-out 1.4s infinite alternate; }
 .art-data-card.secondary { left:  8%; top: 12%; animation: rise-in .5s ease .25s both, float-b 8s ease-in-out 1.2s infinite alternate; }
+.art-data-card.tertiary  { left: 7%;  bottom: 11%; animation: rise-in .5s ease .32s both, float-a 8.5s ease-in-out 2.0s infinite alternate; }
+.art-data-card.quaternary{ right: 30%; bottom: 8%; animation: rise-in .5s ease .40s both, float-b 7.5s ease-in-out 1.7s infinite alternate; }
 
 .card-label { color: var(--accent); font-family: var(--mono); font-size: 9.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
 .card-value { color: var(--ink); font-size: 20px; font-weight: 700; line-height: 1.1; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
@@ -1778,7 +1787,7 @@ input:focus, select:focus, textarea:focus {
   width: 68px;
   height: 68px;
   margin-bottom: 12px;
-  border-radius: 14px;
+  border-radius: 50%;
   overflow: hidden;
 }
 .cc-icon-img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -2359,7 +2368,7 @@ mark.cite {
 .rcc-flag {
   display: flex; align-items: center; justify-content: center;
   width: 46px; height: 46px; flex-shrink: 0;
-  border-radius: 12px; overflow: hidden;
+  border-radius: 50%; overflow: hidden;
   border: 1px solid var(--line);
 }
 .rcc-flag img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -2390,7 +2399,62 @@ mark.cite {
 .gmap-side { display: flex; flex-direction: column; align-items: flex-start; text-align: left; gap: 24px; }
 
 .gmap-hero { display: flex; flex-direction: column; align-items: flex-start; }
-.gmap-hero-num { font-size: 88px; font-weight: 800; line-height: .95; letter-spacing: -.04em; color: var(--accent); font-variant-numeric: tabular-nums; }
+.gmap-hero-num { display: block; font-size: 101px; font-weight: 800; line-height: .95; letter-spacing: -.045em; color: var(--accent); margin-left: -.04em; }
+
+/* Toast */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 32px;
+  transform: translateX(-50%);
+  z-index: 300;
+  padding: 12px 20px;
+  border-radius: 999px;
+  background: rgba(24,24,27,.94);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: var(--shadow-lg);
+  animation: toast-in .22s ease;
+}
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* 우측 하단 플로팅 — AI 사업 추천 바로가기 */
+.fab-recommend {
+  position: fixed;
+  right: 28px;
+  bottom: 28px;
+  z-index: 280;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 14px 20px 14px 17px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--primary, #1d4ed8);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -.01em;
+  cursor: pointer;
+  box-shadow: 0 10px 28px rgba(29,78,216,.38), 0 2px 8px rgba(0,0,0,.12);
+  transition: transform .16s ease, box-shadow .16s ease, background .16s ease;
+  animation: fab-in .28s cubic-bezier(.22,1,.36,1);
+}
+.fab-recommend:hover {
+  background: #1a45c4;
+  transform: translateY(-2px);
+  box-shadow: 0 16px 36px rgba(29,78,216,.46), 0 3px 10px rgba(0,0,0,.14);
+}
+.fab-recommend:active { transform: translateY(0); }
+.fab-recommend svg { flex-shrink: 0; }
+@keyframes fab-in {
+  from { opacity: 0; transform: translateY(16px) scale(.94); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
 .gmap-hero-lab { margin-top: 5px; font-size: 19px; font-weight: 600; color: var(--ink); }
 
 .gmap-stats { display: flex; gap: 22px; flex-wrap: wrap; padding-top: 20px; border-top: 1px solid var(--line); }
@@ -2464,7 +2528,21 @@ mark.cite {
   background: var(--surface);
   box-shadow: var(--shadow-xs);
   min-height: 132px;
+  transition: box-shadow .15s ease, transform .15s ease;
 }
+.ig-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+
+/* 종합개요 헤더 배지 크게 */
+.hero-badges-lg { gap: 9px; margin-top: 18px; }
+.hero-badges-lg .badge,
+.hero-badges-lg .alarm-badge {
+  font-size: 14px; font-weight: 600;
+  min-height: 36px; padding: 7px 15px; border-radius: 10px;
+}
+
+/* 시장정보 지표 타일 hover */
+.mkt-tile { transition: box-shadow .15s ease, transform .15s ease; }
+.mkt-tile:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
 .ig-span2 { grid-column: span 2; }
 .ig-center { align-items: center; text-align: center; }
 
